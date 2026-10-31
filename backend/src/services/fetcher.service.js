@@ -8,7 +8,7 @@ import { checkFetchableUrl } from '../utils/url.js';
 
 const USER_AGENT = 'Mozilla/5.0 (compatible; DigitalDarkSpot/1.0; user-initiated research fetch)';
 
-const SUPPORTED_TYPES = ['text/html', 'application/xhtml+xml', 'text/plain'];
+const SUPPORTED_TYPES = ['text/html', 'application/xhtml+xml', 'text/plain', 'application/pdf'];
 
 export class FetchError extends Error {
   constructor(code, message, extra = {}) {
@@ -46,7 +46,7 @@ function requestOnce(url, deadline) {
         lookup: safeLookup,
         headers: {
           'User-Agent': USER_AGENT,
-          Accept: 'text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.1',
+          Accept: 'text/html,application/xhtml+xml,text/plain;q=0.9,application/pdf;q=0.8,*/*;q=0.1',
           'Accept-Encoding': 'gzip, deflate, br',
           'Accept-Language': 'en;q=1, *;q=0.5',
         },
@@ -169,16 +169,20 @@ export async function fetchPublicPage(inputUrl) {
     const mime = contentType.split(';')[0].trim();
     if (mime && !SUPPORTED_TYPES.includes(mime)) {
       res.resume();
-      const hint = mime === 'application/pdf' ? ' PDF files are not supported yet; paste the relevant text as a source instead.' : '';
-      throw new FetchError('unsupported_type', `Unsupported content type (${mime}).${hint}`, { httpStatus: status });
+      throw new FetchError('unsupported_type', `Unsupported content type (${mime}). Web pages, plain text and PDF files are supported.`, { httpStatus: status });
     }
 
-    const { buffer, truncated } = await readBody(res, limits.maxResponseBytes);
+    const isPdf = mime === 'application/pdf';
+    const { buffer, truncated } = await readBody(res, isPdf ? limits.maxPdfBytes : limits.maxResponseBytes);
+    if (isPdf && truncated) {
+      throw new FetchError('too_large', `The PDF is larger than ${Math.round(limits.maxPdfBytes / 1048576)} MB.`, { httpStatus: status });
+    }
     return {
       finalUrl: url.toString(),
       status,
       contentType: mime || 'text/html',
-      body: decodeBody(buffer, contentType),
+      buffer: isPdf ? buffer : null,
+      body: isPdf ? '' : decodeBody(buffer, contentType),
       truncated,
       lastModified: res.headers['last-modified'] || null,
       redirects,

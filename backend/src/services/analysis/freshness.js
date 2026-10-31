@@ -12,6 +12,7 @@ export function sourceDateInfo(source, now = new Date()) {
     published: source.published || null,
     modified: source.modified || null,
     serverDate: source.serverDate || null,
+    retrievedAt: source.retrievedAt || null,
     best,
     latestYearMentioned: years.length ? Math.max(...years) : null,
   };
@@ -19,7 +20,7 @@ export function sourceDateInfo(source, now = new Date()) {
 
 const formatMonths = (months) => (months >= 24 ? `${Math.floor(months / 12)} years` : `${Math.round(months)} months`);
 
-export function detectFreshness({ sources, claims, now = new Date() }) {
+export function detectFreshness({ sources, claims, now = new Date(), staleMonths = 12 }) {
   const warnings = [];
   const currentYear = now.getUTCFullYear();
 
@@ -28,24 +29,24 @@ export function detectFreshness({ sources, claims, now = new Date() }) {
     if (info.best) {
       const months = monthsBetween(toEndDate(info.best.value), now);
       const which = source.modified ? 'last updated' : 'published';
-      if (months > 24) {
+      if (months > staleMonths * 2) {
         warnings.push({
           id: `fresh_${source.id}_old`,
           sourceId: source.id,
           kind: 'stale',
           severity: 'high',
           title: `Source ${which} more than ${formatMonths(months)} ago`,
-          explanation: `The page declares that it was ${which} on ${info.best.value} (${info.best.origin}). Requirements, dates and amounts may have changed since then.`,
+          explanation: `The source declares that it was ${which} on ${info.best.value} (${info.best.origin}). That is well beyond the ${staleMonths}-month freshness threshold for this type of research, so requirements, dates and amounts may have changed.`,
           evidence: { date: info.best.value, origin: info.best.origin },
         });
-      } else if (months > 12) {
+      } else if (months > staleMonths) {
         warnings.push({
           id: `fresh_${source.id}_aging`,
           sourceId: source.id,
           kind: 'aging',
           severity: 'medium',
           title: `Source ${which} about ${formatMonths(months)} ago`,
-          explanation: `The page declares that it was ${which} on ${info.best.value} (${info.best.origin}). Check that it reflects the current cycle.`,
+          explanation: `The source declares that it was ${which} on ${info.best.value} (${info.best.origin}), beyond the ${staleMonths}-month freshness threshold for this type of research. Check that it reflects the current cycle.`,
           evidence: { date: info.best.value, origin: info.best.origin },
         });
       }
@@ -57,10 +58,10 @@ export function detectFreshness({ sources, claims, now = new Date() }) {
         sourceId: source.id,
         kind: oldYears ? 'old_years' : 'undated',
         severity: oldYears ? 'medium' : 'info',
-        title: oldYears ? `Date unavailable; most recent year mentioned is ${latest}` : 'Date unavailable',
+        title: oldYears ? `Publication date not established; most recent year mentioned is ${latest}` : 'Publication date not established',
         explanation: oldYears
-          ? `No publication or update date was found. The latest year referenced in the text is ${latest}, which suggests the content may not describe the current period. This is an indicator, not proof.`
-          : 'No publication or update date was found in this source, so its currency cannot be assessed. This does not mean it is outdated.',
+          ? `The source declares no publication or update date. The latest year mentioned in its text is ${latest} (an inferred year, not a publication date), which suggests it may not describe the current period. This is an indicator, not proof.`
+          : 'The source declares no publication or update date, so its currency cannot be assessed. This does not mean it is outdated.',
         evidence: { date: null, origin: null, latestYearMentioned: latest, serverDate: info.serverDate },
       });
     }

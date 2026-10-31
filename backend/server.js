@@ -1,6 +1,15 @@
 import { createApp } from './src/app.js';
 import { config, aiConfigured } from './src/config/index.js';
 import { loadStore, purgeExpired, flushStore } from './src/services/store.service.js';
+import { validateEnv } from './src/config/validateEnv.js';
+import { searchStatus } from './src/services/search.service.js';
+
+const envCheck = validateEnv();
+for (const warning of envCheck.warnings) console.warn(`[config] warning: ${warning}`);
+if (envCheck.errors.length) {
+  for (const error of envCheck.errors) console.error(`[config] error: ${error}`);
+  process.exit(1);
+}
 
 await loadStore();
 const purged = await purgeExpired();
@@ -12,6 +21,8 @@ const server = app.listen(config.port, () => {
   console.log(`[api] Digital Dark Spot API listening on http://localhost:${config.port}`);
   console.log(`[api] allowed origins: ${config.allowedOrigins.join(', ')}`);
   console.log(`[api] AI review: ${aiConfigured() ? `enabled (Groq, ${config.ai.model})` : 'not configured (rule-based analysis only)'}`);
+  const search = searchStatus();
+  console.log(`[api] Web search: ${search.configured ? `enabled (${search.provider})` : 'not configured (manual sources only)'}`);
 });
 
 async function shutdown(signal) {

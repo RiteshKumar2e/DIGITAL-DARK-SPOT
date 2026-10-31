@@ -6,11 +6,17 @@ const GAP_PRIORITY = { critical: 'high', important: 'medium', useful: 'low' };
  * Builds verification tasks from findings. Each task keeps a stable key so
  * completion state survives re-analysis; user-added items are always kept.
  */
-export function buildChecklist({ gaps, contradictions, freshness, sourcesById, previous = [] }) {
+export function buildChecklist({ gaps, contradictions, freshness, sourcesById, previous = [], searchHint = '' }) {
   const items = [];
+  const official = Object.values(sourcesById).find((s) => s.officialSignal);
+  // Where to verify: an official-domain source already in the session, otherwise a suggested search.
+  const destinationFor = (topic) =>
+    official
+      ? { type: 'source', sourceId: official.id, note: 'Compare against the official-domain source already in this session.' }
+      : { type: 'search', query: `${searchHint} ${topic} official`.replace(/\s+/g, ' ').trim(), note: 'No official-domain source was reviewed. Look for the issuing organisation’s own page.' };
   const add = (item) => {
     const key = stableKey(item.relatedType, item.relatedId, item.text);
-    items.push({ ...item, id: `chk_${key}`, key, origin: 'analysis', done: false, doneAt: null });
+    items.push({ ...item, id: `chk_${key}`, key, origin: 'analysis', done: false, doneAt: null, destination: destinationFor(item.topic || '') });
   };
 
   for (const gap of gaps) {
@@ -22,6 +28,7 @@ export function buildChecklist({ gaps, contradictions, freshness, sourcesById, p
       unspecified: `${gap.label} is mentioned without a specific value. ${gap.whyItMatters}`,
       single_source: `Only one source covers ${gap.label.toLowerCase()}, so it has not been corroborated.`,
       question_term: gap.whyItMatters,
+      scope_mismatch: gap.whyItMatters,
     }[gap.kind];
     add({
       text: gap.kind === 'single_source' ? `Corroborate ${gap.label.toLowerCase()} with a second, official source.` : gap.nextStep,
@@ -29,7 +36,8 @@ export function buildChecklist({ gaps, contradictions, freshness, sourcesById, p
       rationale,
       relatedType: 'gap',
       relatedId: gap.id,
-      sourceIds: gap.kind === 'missing' || gap.kind === 'question_term' ? [] : [...new Set(gap.evidenceClaimIds.map((id) => id.slice(0, id.lastIndexOf('_c'))))],
+      topic: gap.label,
+      sourceIds: ['missing', 'question_term', 'scope_mismatch'].includes(gap.kind) ? [] : [...new Set(gap.evidenceClaimIds.map((id) => id.slice(0, id.lastIndexOf('_c'))))],
     });
   }
 
@@ -48,6 +56,7 @@ export function buildChecklist({ gaps, contradictions, freshness, sourcesById, p
           : 'Sources state different values; this may be a difference in cycle, unit or category, which still needs confirming.',
       relatedType: 'contradiction',
       relatedId: finding.id,
+      topic: finding.subject,
       sourceIds: [finding.claimA.sourceId, finding.claimB.sourceId],
     });
   }
@@ -65,6 +74,7 @@ export function buildChecklist({ gaps, contradictions, freshness, sourcesById, p
       });
       continue;
     }
+    const topicFor = { past_deadline: 'deadline', stale: '', aging: '', old_years: '' };
     const text = {
       past_deadline: 'Confirm the current deadline; a deadline stated in a source has already passed.',
       stale: 'Check for a more recent version of an outdated source.',
@@ -73,6 +83,7 @@ export function buildChecklist({ gaps, contradictions, freshness, sourcesById, p
     }[warning.kind];
     add({
       text,
+      topic: topicFor[warning.kind] || '',
       priority: warning.kind === 'past_deadline' ? 'high' : warning.severity === 'high' ? 'medium' : 'low',
       rationale: warning.explanation,
       relatedType: 'freshness',

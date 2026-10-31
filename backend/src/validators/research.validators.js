@@ -31,6 +31,29 @@ function validateProfile(value, fields) {
   return 'auto';
 }
 
+const CONTEXT_FIELDS = { situation: 'Your situation', location: 'Country or region', period: 'Time period' };
+
+/** Optional research scope. Each field is short free text; empty fields are dropped. */
+function validateContext(value, fields) {
+  if (value === undefined || value === null) return {};
+  if (!isPlainObject(value)) {
+    fields.context = 'Scope must be an object.';
+    return {};
+  }
+  const out = {};
+  for (const [key, label] of Object.entries(CONTEXT_FIELDS)) {
+    if (value[key] === undefined || value[key] === null || value[key] === '') continue;
+    if (typeof value[key] !== 'string') {
+      fields[key] = `${label} must be text.`;
+      continue;
+    }
+    const cleaned = cleanText(value[key]).replace(/\n+/g, ' ');
+    if (cleaned.length > 120) fields[key] = `${label} must be under 120 characters.`;
+    else if (cleaned) out[key] = cleaned;
+  }
+  return out;
+}
+
 export function validateCreateSession(rawBody) {
   const body = requireBody(rawBody);
   const fields = {};
@@ -38,8 +61,9 @@ export function validateCreateSession(rawBody) {
   const isBot = typeof body.website === 'string' && body.website.trim() !== '';
   const question = validateQuestion(body.question, fields);
   const profile = validateProfile(body.profile, fields);
+  const context = validateContext(body.context, fields);
   if (Object.keys(fields).length) throw badRequest('Please correct the highlighted fields.', fields);
-  return { question, profile, isBot };
+  return { question, profile, context, isBot };
 }
 
 export function validateUpdateSession(rawBody) {
@@ -48,6 +72,7 @@ export function validateUpdateSession(rawBody) {
   const out = {};
   if ('question' in body) out.question = validateQuestion(body.question, fields);
   if ('profile' in body) out.profile = validateProfile(body.profile, fields);
+  if ('context' in body) out.context = validateContext(body.context, fields);
   if (!Object.keys(out).length && !Object.keys(fields).length) throw badRequest('Nothing to update.');
   if (Object.keys(fields).length) throw badRequest('Please correct the highlighted fields.', fields);
   return out;
@@ -89,4 +114,30 @@ export function validateChecklistCreate(rawBody) {
   if (text.length > 300) throw badRequest('Keep checklist items under 300 characters.', { text: 'Under 300 characters.' });
   const priority = ['high', 'medium', 'low'].includes(body.priority) ? body.priority : 'medium';
   return { text, priority };
+}
+
+export function validatePdfUpload(req) {
+  if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+    throw badRequest('Upload a PDF file (Content-Type: application/pdf).', { file: 'No PDF file received.' });
+  }
+  let fileName = 'document.pdf';
+  const header = req.get('X-File-Name');
+  if (header) {
+    try {
+      fileName = decodeURIComponent(header);
+    } catch {
+      throw badRequest('The file name could not be read.', { file: 'Invalid file name.' });
+    }
+  }
+  fileName = cleanText(fileName).replace(/[\\/:*?"<>|]/g, '_').slice(0, 150);
+  if (!/\.pdf$/i.test(fileName)) throw badRequest('Only .pdf files can be uploaded.', { file: 'Only .pdf files can be uploaded.' });
+  return { fileName, buffer: req.body };
+}
+
+export function validateSearch(rawBody) {
+  const body = requireBody(rawBody);
+  const query = typeof body.query === 'string' ? cleanText(body.query).replace(/\n+/g, ' ') : '';
+  if (query.length < 3) throw badRequest('Enter at least 3 characters to search.', { query: 'At least 3 characters.' });
+  if (query.length > 200) throw badRequest('Keep the search under 200 characters.', { query: 'Under 200 characters.' });
+  return { query };
 }

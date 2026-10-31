@@ -3,20 +3,23 @@ import { Tag } from '../ui.jsx';
 import { formatDate } from '../../utils/format.js';
 
 /** Button that names a source and opens it in the inspector. */
-export function SourceRef({ sourceId, highlight }) {
+export function SourceRef({ sourceId, highlight, page }) {
   const { sourcesById, openSource } = useEvidence();
   const source = sourcesById[sourceId];
   if (!source) return <span className="muted">Unknown source</span>;
   return (
     <button type="button" className="source-ref" onClick={() => openSource(sourceId, highlight)}>
       <span className="source-label">{source.label}</span>
-      <span className="source-ref-name">{source.kind === 'sample' ? 'Simulated sample' : source.domain || source.title}</span>
+      <span className="source-ref-name">
+        {source.kind === 'sample' ? 'Simulated sample' : source.kind === 'pdf' ? source.fileName : source.domain || source.title}
+        {page ? `, p. ${page}` : ''}
+      </span>
     </button>
   );
 }
 
 /** A verbatim sentence from a source, with its citation. */
-export function Quote({ text, sourceId, value, label = 'Source text', date }) {
+export function Quote({ text, sourceId, value, label = 'Source text', date, page }) {
   const { sourcesById } = useEvidence();
   const source = sourcesById[sourceId];
   return (
@@ -27,8 +30,8 @@ export function Quote({ text, sourceId, value, label = 'Source text', date }) {
       <figcaption className="quote-cite">
         <Tag tone="source">{label}</Tag>
         {source?.kind === 'sample' && <Tag tone="sample">Simulated</Tag>}
-        <SourceRef sourceId={sourceId} highlight={text} />
-        {date !== undefined && <span>{date ? `Source dated ${formatDate(date.value)}` : 'Source date unavailable'}</span>}
+        <SourceRef sourceId={sourceId} highlight={text} page={page} />
+        {date !== undefined && <span>{date ? `Source dated ${formatDate(date.value)}` : 'Source date not established'}</span>}
       </figcaption>
     </figure>
   );
@@ -50,5 +53,5 @@ export function ClaimQuote({ claimId }) {
   const { claimsById } = useEvidence();
   const claim = claimsById[claimId];
   if (!claim) return null;
-  return <Quote text={claim.text} sourceId={claim.sourceId} />;
+  return <Quote text={claim.text} sourceId={claim.sourceId} page={claim.page} />;
 }

@@ -59,3 +59,5 @@ Answer: Selected students get an email from the help desk and have to send their
 
 export const DEMO_QUESTION =
   'What should I verify before applying for the Sunrise Merit Scholarship, including eligibility, the current deadline, documents and whether it can be renewed?';
+
+export const DEMO_CONTEXT = { situation: 'First-year undergraduate student', location: 'India', period: 'Current academic year' };

@@ -2,9 +2,12 @@ import { config } from '../config/index.js';
 import { newId, newSessionId, isSessionId } from '../utils/ids.js';
 import { badRequest, conflict, notFound, HttpError } from '../utils/httpError.js';
 import { getSession, saveSession, deleteSession } from '../services/store.service.js';
-import { retrieveUrlSource, buildTextSource, publicSource } from '../services/source.service.js';
+import { retrieveUrlSource, buildTextSource, buildPdfSource, publicSource, contentHash } from '../services/source.service.js';
+import { PdfError } from '../services/pdf.service.js';
+import { webSearch } from '../services/search.service.js';
+import { buildReport } from '../services/report.service.js';
 import { analyzeSession } from '../services/analysis/index.js';
-import { buildDemoSources, DEMO_QUESTION } from '../services/demo.service.js';
+import { buildDemoSources, DEMO_QUESTION, DEMO_CONTEXT } from '../services/demo.service.js';
 import { domainOf } from '../utils/url.js';
 import { stableKey } from '../utils/ids.js';
 import {
@@ -13,6 +16,8 @@ import {
   validateAddSource,
   validateChecklistPatch,
   validateChecklistCreate,
+  validatePdfUpload,
+  validateSearch,
 } from '../validators/research.validators.js';
 
 const busy = new Set();
@@ -37,6 +42,7 @@ export function publicSession(session) {
     updatedAt: session.updatedAt,
     question: session.question,
     profile: session.profile,
+    context: session.context || {},
     demo: Boolean(session.demo),
     sources: session.sources.map((s) => publicSource(s)),
     analysis: session.analysis,
@@ -46,20 +52,30 @@ export function publicSession(session) {
   };
 }
 
-function newSession({ question, profile, demo = false }) {
+/** Two sources with identical extracted text add nothing to a comparison. */
+function rejectDuplicateContent(session, source) {
+  if (source.status !== 'retrieved') return;
+  source.contentHash = contentHash(source.text);
+  const twin = session.sources.findIndex((s) => s.contentHash && s.contentHash === source.contentHash);
+  if (twin !== -1) {
+    throw new HttpError(409, `This content is identical to source S${twin + 1}, which is already in the session.`, { code: 'duplicate_source' });
+  }
+}
+
+function newSession({ question, profile, context = {}, demo = false }) {
   const now = new Date().toISOString();
-  return { id: newSessionId(), createdAt: now, updatedAt: now, question, profile, demo, sources: [], analysis: null, analysisStale: false, checklist: [] };
+  return { id: newSessionId(), createdAt: now, updatedAt: now, question, profile, context, demo, sources: [], analysis: null, analysisStale: false, checklist: [] };
 }
 
 export async function createSession(req, res) {
-  const { question, profile, isBot } = validateCreateSession(req.body);
+  const { question, profile, context, isBot } = validateCreateSession(req.body);
   if (isBot) throw badRequest('The session could not be created.');
-  const session = await saveSession(newSession({ question, profile }));
+  const session = await saveSession(newSession({ question, profile, context }));
   res.status(201).json({ session: publicSession(session) });
 }
 
 export async function createDemoSession(req, res) {
-  const session = newSession({ question: DEMO_QUESTION, profile: 'scholarship', demo: true });
+  const session = newSession({ question: DEMO_QUESTION, profile: 'scholarship', demo: true, context: DEMO_CONTEXT });
   session.sources = buildDemoSources().map((sample) => {
     const source = { id: newId('src'), kind: 'sample', url: null, sampleLabel: sample.label, addedAt: new Date().toISOString() };
     buildTextSource(source, { title: sample.title, text: sample.text });
@@ -118,6 +134,7 @@ export async function addSource(req, res) {
       buildTextSource(source, input);
       if (input.originUrl) source.domain = domainOf(input.originUrl);
     }
+    rejectDuplicateContent(session, source);
     session.sources.push(source);
     if (session.analysis) session.analysisStale = true;
     await saveSession(session);
@@ -135,6 +152,7 @@ export async function retrySource(req, res) {
   const release = withLock(session.id);
   try {
     await retrieveUrlSource(source);
+    source.contentHash = source.status === 'retrieved' ? contentHash(source.text) : null;
     if (session.analysis) session.analysisStale = true;
     await saveSession(session);
     res.json({ source: publicSource(source), session: publicSession(session) });
@@ -170,6 +188,9 @@ export async function analyze(req, res) {
   const release = withLock(session.id);
   try {
     const { analysis, checklist, sourceDates } = await analyzeSession(session);
+    analysis.sourceSnapshot = Object.fromEntries(
+      session.sources.map((s) => [s.id, { contentHash: s.contentHash || contentHash(s.text || ''), retrievedAt: s.retrievedAt || null, status: s.status }]),
+    );
     session.analysis = analysis;
     session.checklist = checklist;
     session.analysisStale = false;
@@ -227,4 +248,55 @@ export async function deleteChecklistItem(req, res) {
   session.checklist = session.checklist.filter((i) => i.id !== item.id);
   await saveSession(session);
   res.json({ checklist: session.checklist });
+}
+
+export async function uploadPdf(req, res) {
+  const session = loadSession(req.params.id);
+  if (session.demo) throw badRequest('Files cannot be added to the sample session. Start your own session instead.');
+  if (session.sources.length >= config.limits.maxSourcesPerSession) {
+    throw badRequest(`A session can hold up to ${config.limits.maxSourcesPerSession} sources. Remove one to add another.`);
+  }
+  const { fileName, buffer } = validatePdfUpload(req);
+  const release = withLock(session.id);
+  try {
+    const source = { id: newId('src'), kind: 'pdf', url: null, addedAt: new Date().toISOString(), fileSize: buffer.length };
+    try {
+      await buildPdfSource(source, { buffer, fileName });
+    } catch (error) {
+      if (error instanceof PdfError) throw badRequest(error.message, { file: error.message });
+      throw error;
+    }
+    rejectDuplicateContent(session, source);
+    session.sources.push(source);
+    if (session.analysis) session.analysisStale = true;
+    await saveSession(session);
+    res.status(201).json({ source: publicSource(source), session: publicSession(session) });
+  } finally {
+    release();
+  }
+}
+
+export async function search(req, res) {
+  const session = loadSession(req.params.id);
+  if (session.demo) throw badRequest('Search is not available in the sample session.');
+  const { query } = validateSearch(req.body);
+  const result = await webSearch(query);
+  const known = new Set(session.sources.flatMap((s) => [s.url, s.finalUrl]).filter(Boolean));
+  res.json({ ...result, results: result.results.map((r) => ({ ...r, alreadyAdded: known.has(r.url) })) });
+}
+
+export async function exportReport(req, res) {
+  const session = loadSession(req.params.id);
+  if (!session.analysis) throw badRequest('Run the analysis before exporting a report.');
+  const format = req.query.format === 'html' ? 'html' : 'markdown';
+  const report = buildReport(session, format);
+  const fileName = `digital-dark-spot-report-${session.createdAt.slice(0, 10)}`;
+  if (format === 'html') {
+    // Standalone printable document: only its own inline styles are allowed.
+    res.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'");
+    res.type('html').send(report);
+  } else {
+    res.set('Content-Disposition', `attachment; filename="${fileName}.md"`);
+    res.type('text/markdown; charset=utf-8').send(report);
+  }
 }

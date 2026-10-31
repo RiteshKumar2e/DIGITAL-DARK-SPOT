@@ -32,6 +32,25 @@ export const config = {
     maxResponseBytes: 3 * 1024 * 1024,
     fetchTimeoutMs: 12000,
     maxRedirects: 5,
+    maxPdfBytes: intFromEnv('MAX_PDF_MB', 10) * 1024 * 1024,
+    maxPdfPages: 200,
+    pdfTimeoutMs: 20000,
+  },
+
+  search: {
+    provider: (process.env.SEARCH_PROVIDER || '').toLowerCase(),
+    tavilyKey: process.env.TAVILY_API_KEY || '',
+    braveKey: process.env.BRAVE_SEARCH_API_KEY || '',
+    timeoutMs: 10000,
+    maxResults: 8,
+  },
+
+  freshnessMonths: {
+    scholarship: 12,
+    job: 12,
+    publicService: 12,
+    general: 24,
+    research: 60,
   },
 
   ai: {

@@ -52,11 +52,11 @@ export const FACETS = {
   },
   renewal: {
     label: 'Renewal / continuation',
-    pattern: /\b(renew\w*|continuation|continue to receive|subsequent years?|each year of study|re-?apply)\b/i,
+    pattern: /\b(renew\w*|continuation|continue to receive|continued (?:support|funding)|subsequent years?|each year of study|re-?apply|extension|tenable for|for the (?:entire|full) (?:duration|course)|until (?:the )?completion)\b/i,
   },
   howToApply: {
     label: 'How to apply',
-    pattern: /\b(how to apply|apply online|application (?:form|portal|process)|register (?:on|at)|submit (?:an|the|your) application|online portal|steps? to apply)\b/i,
+    pattern: /\b(how to apply|apply online|application (?:form|portal|process|link)|register (?:on|at)|registration (?:link|portal)|submit (?:an|the|your) application|online portal|steps? to apply|apply (?:through|via|at))\b/i,
   },
   contact: {
     label: 'Official contact',

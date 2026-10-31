@@ -17,7 +17,16 @@ export async function loadStore() {
     const data = JSON.parse(raw);
     for (const session of data.sessions || []) sessions.set(session.id, session);
   } catch (error) {
-    if (error.code !== 'ENOENT') console.error('[store] could not read data file; starting empty:', error.message);
+    if (error.code !== 'ENOENT') {
+      // Keep the unreadable file for inspection instead of overwriting it on the next save.
+      const backup = `${config.dataFile}.corrupt-${Date.now()}`;
+      try {
+        await fs.rename(config.dataFile, backup);
+        console.error(`[store] data file was unreadable; moved to ${path.basename(backup)} and starting empty`);
+      } catch {
+        console.error('[store] data file was unreadable and could not be moved; starting empty');
+      }
+    }
   }
   loaded = true;
 }

@@ -30,7 +30,7 @@ export function createApp() {
         return callback(new Error('CORS: origin not allowed'));
       },
       methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-      allowedHeaders: ['Content-Type'],
+      allowedHeaders: ['Content-Type', 'X-File-Name'],
       maxAge: 600,
     }),
   );

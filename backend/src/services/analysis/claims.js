@@ -58,6 +58,17 @@ export function findPercents(text) {
   return out;
 }
 
+/** Page number containing a character offset (PDF sources keep page start offsets). */
+function pageAt(pages, offset) {
+  if (!pages?.length || offset < 0) return null;
+  let page = null;
+  for (const entry of pages) {
+    if (entry.start <= offset) page = entry.page;
+    else break;
+  }
+  return page;
+}
+
 const VALUE_FINDERS = { date: findDates, money: findMoney, age: findAges, percent: findPercents };
 
 const MIN_LEN = 25;
@@ -120,5 +131,6 @@ export function extractClaims(source, facetKeys, question) {
       values: c.values,
       relevance: c.relevance,
       position: c.position,
+      page: source.pages ? pageAt(source.pages, (source.text || '').indexOf(c.sentence)) : null,
     }));
 }

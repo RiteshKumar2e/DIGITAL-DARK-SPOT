@@ -24,6 +24,7 @@ export const GAP_KIND = {
   unspecified: 'Mentioned without specifics',
   single_source: 'Only one source',
   question_term: 'Question not fully covered',
+  scope_mismatch: 'Outside your stated scope',
 };
 
 export const CONTRADICTION_CLASS = {
@@ -43,7 +44,7 @@ export const AI_ASSESSMENT = {
 export const FRESHNESS_SEVERITY = {
   high: { label: 'Needs checking', tone: 'high' },
   medium: { label: 'Possibly outdated', tone: 'medium' },
-  info: { label: 'Date unavailable', tone: 'info' },
+  info: { label: 'Date not established', tone: 'info' },
 };
 
 export const SOURCE_STATUS = {

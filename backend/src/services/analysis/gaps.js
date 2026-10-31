@@ -132,6 +132,6 @@ export function detectGaps({ profile, sources, claims, question }) {
   }
 
   const order = { critical: 0, important: 1, useful: 2 };
-  const kindOrder = { missing: 0, unspecified: 1, question_term: 2, single_source: 3 };
+  const kindOrder = { scope_mismatch: 0, missing: 1, unspecified: 2, question_term: 3, single_source: 4 };
   return gaps.sort((a, b) => order[a.importance] - order[b.importance] || kindOrder[a.kind] - kindOrder[b.kind]);
 }

@@ -66,7 +66,7 @@ function quoteIsInSource(quote, sourceText) {
   return normalizeForMatch(sourceText).includes(q);
 }
 
-function validate(raw, { sourcesById, contradictionIds }) {
+export function validateAiOutput(raw, { sourcesById, contradictionIds }) {
   const data = raw && typeof raw === 'object' ? raw : {};
   let discarded = 0;
 
@@ -130,7 +130,7 @@ export async function runAiReview({ question, profileLabel, sources, gaps, contr
     } catch {
       return { status: 'error', message: 'The AI provider returned a malformed response, so it was ignored.', model: config.ai.model };
     }
-    const result = validate(parsed, { sourcesById, contradictionIds: new Set(contradictions.map((c) => c.id)) });
+    const result = validateAiOutput(parsed, { sourcesById, contradictionIds: new Set(contradictions.map((c) => c.id)) });
     return {
       status: 'ok',
       model: config.ai.model,

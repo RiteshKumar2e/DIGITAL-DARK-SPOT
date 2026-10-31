@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { researchApi } from '../../services/researchApi.js';
-import { formatDate, formatNumber, safeHref } from '../../utils/format.js';
+import { formatDate, formatDateTime, formatNumber, safeHref } from '../../utils/format.js';
 import { SOURCE_STATUS } from '../../utils/labels.js';
 import { Alert, EmptyState, Tag } from '../ui.jsx';
 import { useEvidence } from './EvidenceContext.jsx';
@@ -8,7 +8,7 @@ import { useEvidence } from './EvidenceContext.jsx';
 function SourceDate({ source }) {
   const best = source.modified || source.published;
   if (source.status !== 'retrieved') return null;
-  if (!best) return <span>Date unavailable</span>;
+  if (!best) return <span>Publication date not established</span>;
   return (
     <span title={best.origin}>
       {source.modified ? 'Updated' : 'Published'} {formatDate(best.value)}
@@ -16,12 +16,14 @@ function SourceDate({ source }) {
   );
 }
 
-function SourceItem({ source, sessionId, demo, onChange }) {
+function SourceItem({ source, sessionId, demo, onChange, snapshot }) {
   const { openSource } = useEvidence();
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState('');
   const status = SOURCE_STATUS[source.status] || SOURCE_STATUS.failed;
   const href = safeHref(source.finalUrl || source.url);
+  // The source's content differs from the version the last analysis used.
+  const changed = Boolean(snapshot && source.contentHash && snapshot.contentHash !== source.contentHash);
 
   async function run(kind, fn) {
     setBusy(kind);
@@ -53,7 +55,13 @@ function SourceItem({ source, sessionId, demo, onChange }) {
               <span className="visually-hidden"> (opens in a new tab)</span>
             </a>
           ) : (
-            <span className="url">{source.kind === 'sample' ? 'Simulated document: no real web address' : 'Pasted text: origin not verified'}</span>
+            <span className="url">
+              {source.kind === 'sample'
+                ? 'Simulated document: no real web address'
+                : source.kind === 'pdf'
+                  ? `Uploaded file: ${source.fileName}`
+                  : 'Pasted text: origin not verified'}
+            </span>
           )}
         </div>
       </div>
@@ -62,10 +70,18 @@ function SourceItem({ source, sessionId, demo, onChange }) {
         <Tag tone={status.tone}>{status.label}</Tag>
         {source.kind === 'sample' && <Tag tone="sample">Simulated</Tag>}
         {source.kind === 'text' && <Tag plain>Pasted by you</Tag>}
+        {source.format === 'pdf' && <Tag plain>PDF{source.pageCount ? `, ${source.pageCount} pages` : ''}</Tag>}
+        {source.officialSignal && (
+          <Tag tone="info" title={source.officialSignal.reason}>
+            {source.officialSignal.level === 'academic' ? 'Academic domain' : 'Official domain'}
+          </Tag>
+        )}
+        {changed && <Tag tone="warning">Changed since analysis</Tag>}
         {source.analyzedAt && source.status === 'retrieved' && <Tag tone="ok">Analysed</Tag>}
         {source.status === 'retrieved' && <span>{formatNumber(source.wordCount)} words</span>}
         <SourceDate source={source} />
         {source.textTruncated && <span>Long page: only the first part was kept</span>}
+        {source.retrievedAt && source.kind !== 'sample' && <span>Retrieved {formatDateTime(source.retrievedAt)}</span>}
       </div>
 
       {source.status === 'failed' && source.error && (
@@ -107,7 +123,7 @@ function SourceItem({ source, sessionId, demo, onChange }) {
   );
 }
 
-export default function SourceList({ sessionId, demo, onChange }) {
+export default function SourceList({ sessionId, demo, onChange, snapshot = null }) {
   const { sourcesById } = useEvidence();
   const sources = Object.values(sourcesById);
   if (!sources.length) {
@@ -121,7 +137,7 @@ export default function SourceList({ sessionId, demo, onChange }) {
   return (
     <ul className="source-list">
       {sources.map((source) => (
-        <SourceItem key={source.id} source={source} sessionId={sessionId} demo={demo} onChange={onChange} />
+        <SourceItem key={source.id} source={source} sessionId={sessionId} demo={demo} onChange={onChange} snapshot={snapshot?.[source.id]} />
       ))}
     </ul>
   );
