@@ -168,6 +168,8 @@
 
 /* ---------- Footer (compact) ---------- */
 .site-footer {
+  outline: none;
+  scroll-margin-top: var(--header-h);
   margin-top: var(--s-8);
   padding: var(--s-3) 0 var(--s-4);
   border-top: 1px solid var(--line);

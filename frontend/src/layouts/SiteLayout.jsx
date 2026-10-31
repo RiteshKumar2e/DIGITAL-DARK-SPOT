@@ -78,6 +78,10 @@ export default function SiteLayout() {
                   )}
                 </li>
               ))}
+              <li>
+                {/* Stays on the current page and scrolls to the footer contact links. */}
+                <Link to={{ pathname: location.pathname, hash: '#contact' }}>Contact</Link>
+              </li>
               <li className="nav-cta">
                 <Link to="/research" className="btn btn-primary btn-sm">
                   Start research
@@ -92,7 +96,7 @@ export default function SiteLayout() {
         <Outlet />
       </main>
 
-      <footer className="site-footer">
+      <footer className="site-footer" id="contact" tabIndex={-1}>
         <div className="container site-footer-inner">
           <Link to="/" className="brand-link footer-logo" aria-label="Digital Dark Spot home">
             <Logo />
