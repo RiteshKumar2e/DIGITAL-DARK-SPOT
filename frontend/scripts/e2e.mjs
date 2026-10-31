@@ -133,3 +133,4 @@ for (const w of [320, 375, 390, 768, 1024, 1440]) {
 }
 await browser.close();
 log('\nISSUES:\n' + (issues.join('\n') || 'none'));
+process.exitCode = issues.length ? 1 : 0;
