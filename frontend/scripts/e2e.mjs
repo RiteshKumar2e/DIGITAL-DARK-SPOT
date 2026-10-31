@@ -12,6 +12,8 @@ import path from 'node:path';
 import { makePdf } from '../../backend/test/helpers.js';
 
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:5173';
+const API = process.env.E2E_API_URL || 'http://localhost:4000';
+const created = [];
 const out = path.resolve('e2e-output');
 fs.mkdirSync(out, { recursive: true });
 const PDF = path.join(os.tmpdir(), 'dds-e2e-notice.pdf');
@@ -52,6 +54,7 @@ await page.waitForURL(/\/demo$/);
 log('demo title:', await page.title());
 await page.getByRole('button', { name: 'Start the sample investigation' }).click();
 await page.waitForURL(/research\/.+/);
+created.push(page.url().split('/research/')[1]);
 await page.locator('.demo-guide').getByRole('button', { name: 'Run analysis' }).click();
 await page.locator('.scope-summary').waitFor({ timeout: 60000 });
 await page.locator('.demo-guide').getByRole('button', { name: 'Show gap' }).click();
@@ -92,6 +95,7 @@ await page.getByText('Add scope (optional)').click();
 await page.getByLabel('Country or region').fill('India');
 await page.getByRole('button', { name: 'Start a research session' }).click();
 await page.waitForURL(/research\/.+/);
+created.push(page.url().split('/research/')[1]);
 log('scope line:', await page.locator('.scope-line').innerText());
 await page.getByText('Search', { exact: true }).click();
 const searchConfigured = (await (await page.request.get(page.url().replace(/:\d+\/.*/, ':4000/api/health'))).json()).search?.configured;
@@ -146,6 +150,13 @@ for (const w of [320, 375, 390, 768, 1024, 1440]) {
   if (w === 375) await m.screenshot({ path: `${out}/v2-m375.png`, fullPage: true });
   await m.context().close();
 }
+
+// Remove the sessions this run created, so repeated runs do not fill the data store.
+for (const id of created) {
+  const res = await page.request.delete(`${API}/api/research/${id}`);
+  if (res.status() !== 204) issues.push(`cleanup: could not delete session (HTTP ${res.status()})`);
+}
+log(`cleanup: deleted ${created.length} test sessions`);
 await browser.close();
 log('\nISSUES:\n' + (issues.join('\n') || 'none'));
 process.exitCode = issues.length ? 1 : 0;

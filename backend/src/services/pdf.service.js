@@ -80,10 +80,10 @@ export async function extractPdf(buffer) {
       text,
       pages,
       pageCount: pdf.numPages,
-      published: created ? { value: created, origin: 'PDF document properties (creation date)', raw: created } : null,
+      published: created ? { value: created, origin: 'PDF file creation date (may differ from the publication date)', raw: created } : null,
       modified:
         modified && modified !== created
-          ? { value: modified, origin: 'PDF document properties (modification date)', raw: modified }
+          ? { value: modified, origin: 'PDF file modification date (may differ from a content update)', raw: modified }
           : null,
     };
   } finally {

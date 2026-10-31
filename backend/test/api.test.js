@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { makePdf } from './helpers.js';
 
 // Isolated data file and no external providers for these tests.
 const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dds-api-'));
@@ -12,6 +11,11 @@ process.env.GROQ_API_KEY = '';
 process.env.SEARCH_PROVIDER = '';
 process.env.TAVILY_API_KEY = '';
 process.env.SERPER_API_KEY = '';
+
+const { makePdf } = await import('./helpers.js');
+// Fail fast if this file would touch the real data store.
+const { config: loadedConfig } = await import('../src/config/index.js');
+if (loadedConfig.dataFile !== process.env.DATA_FILE) throw new Error('Test is not isolated: DATA_FILE was read before it was set.');
 
 const { createApp } = await import('../src/app.js');
 const { loadStore } = await import('../src/services/store.service.js');

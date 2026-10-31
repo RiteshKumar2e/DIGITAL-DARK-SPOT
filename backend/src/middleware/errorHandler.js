@@ -5,6 +5,9 @@ export function notFoundHandler(req, res) {
   res.status(404).json({ error: { code: 'not_found', message: 'This API route does not exist.' } });
 }
 
+// Session ids act as access keys (there are no accounts), so they are never written to logs.
+export const redactPath = (path) => String(path).replace(/\/research\/[A-Za-z0-9_-]{22}/g, '/research/:id');
+
 // Centralised error responses. Internal details are logged, never returned.
 export function errorHandler(err, req, res, _next) {
   if (err instanceof HttpError) {
@@ -22,6 +25,6 @@ export function errorHandler(err, req, res, _next) {
   if (err?.message?.startsWith('CORS')) {
     return res.status(403).json({ error: { code: 'cors', message: 'This origin is not allowed to use the API.' } });
   }
-  console.error(`[error] ${req.method} ${req.path}:`, err?.stack || err);
+  console.error(`[error] ${req.method} ${redactPath(req.path)}:`, err?.stack || err);
   return res.status(500).json({ error: { code: 'internal_error', message: 'Something went wrong on the server. Please try again.' } });
 }

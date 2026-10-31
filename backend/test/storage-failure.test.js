@@ -11,6 +11,10 @@ await fs.writeFile(blocker, 'x');
 process.env.DATA_FILE = path.join(blocker, 'sessions.json');
 process.env.GROQ_API_KEY = '';
 
+// Fail fast if this file would touch the real data store.
+const { config: loadedConfig } = await import('../src/config/index.js');
+if (loadedConfig.dataFile !== process.env.DATA_FILE) throw new Error('Test is not isolated: DATA_FILE was read before it was set.');
+
 const { saveSession, StorageError } = await import('../src/services/store.service.js');
 const { createApp } = await import('../src/app.js');
 

@@ -8,6 +8,10 @@ const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dds-rel-'));
 process.env.DATA_FILE = path.join(dir, 'sessions.json');
 process.env.GROQ_API_KEY = '';
 
+// Fail fast if this file would touch the real data store.
+const { config: loadedConfig } = await import('../src/config/index.js');
+if (loadedConfig.dataFile !== process.env.DATA_FILE) throw new Error('Test is not isolated: DATA_FILE was read before it was set.');
+
 const { validateAiOutput } = await import('../src/services/ai.service.js');
 const { runEvaluation } = await import('./evaluate.js');
 
