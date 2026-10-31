@@ -41,6 +41,17 @@ export function createApp() {
     next();
   });
 
+  // The API root describes the service, so opening it in a browser is not a dead end.
+  app.get(['/', '/api'], (req, res) => {
+    res.json({
+      service: 'Digital Dark Spot API',
+      status: 'ok',
+      message: 'This is the backend API. Open the web app at the frontend address instead.',
+      frontend: config.allowedOrigins[0] || null,
+      endpoints: { health: '/api/health', research: '/api/research' },
+    });
+  });
+
   app.use('/api', apiLimiter, routes);
   app.use(notFoundHandler);
   app.use(errorHandler);
