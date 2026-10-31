@@ -43,7 +43,7 @@ export default function HomePage() {
       <section className="hero" aria-labelledby="hero-heading">
         <div className="container hero-grid">
           <div className="hero-copy">
-            <p className="eyebrow">AI-assisted research intelligence</p>
+            <p className="eyebrow">Source checker for big decisions</p>
             <h1 id="hero-heading">
               Find what the sources <span className="underline-mark">leave out</span>.
             </h1>
@@ -79,7 +79,7 @@ export default function HomePage() {
       <section className="section container problem" aria-labelledby="problem-heading">
         <div className="problem-grid">
           <div className="section-intro">
-            <p className="eyebrow">The information-gap problem</p>
+            <p className="eyebrow">The problem</p>
             <h2 id="problem-heading">Search finds pages. Summaries condense them. Neither tells you what is missing.</h2>
           </div>
           <ul className="problem-list">
@@ -157,7 +157,7 @@ export default function HomePage() {
         <div className="container cap-grid">
           <div className="section-intro">
             <p className="eyebrow">Capabilities</p>
-            <h2 id="cap-heading">Built to show what search and summaries leave out</h2>
+            <h2 id="cap-heading">What it checks</h2>
             <p className="muted">
               A summary condenses what is there. Digital Dark Spot also reports what is not there, where sources disagree, and
               how current they are.
@@ -176,8 +176,8 @@ export default function HomePage() {
 
       <section id="trust" tabIndex={-1} className="section container trust" aria-labelledby="trust-heading">
         <div className="section-intro">
-          <p className="eyebrow">Trust and transparency</p>
-          <h2 id="trust-heading">It tells you what it checked, and what it could not</h2>
+          <p className="eyebrow">Honest by design</p>
+          <h2 id="trust-heading">It says what it checked, and what it couldn’t</h2>
         </div>
         <div className="trust-grid">
           <div className="stack">

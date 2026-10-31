@@ -10,10 +10,10 @@ export function LogoMark({ size = 32, title }) {
       focusable="false"
     >
       {title && <title>{title}</title>}
-      <circle cx="30" cy="34" r="26" fill="#211D1A" />
-      <path d="M15 27.5c3.4-2.6 7.6-3.4 11.6-2.2" stroke="#FAF6EE" strokeWidth="6" strokeLinecap="round" fill="none" />
-      <path d="M33.4 25.3c4-1.2 8.2-.4 11.6 2.2" stroke="#FAF6EE" strokeWidth="6" strokeLinecap="round" fill="none" />
-      <circle cx="52" cy="52" r="9" fill="#C21F2F" />
+      <circle cx="30" cy="34" r="26" fill="#111111" />
+      <path d="M15 27.5c3.4-2.6 7.6-3.4 11.6-2.2" stroke="#FFD60A" strokeWidth="6" strokeLinecap="round" fill="none" />
+      <path d="M33.4 25.3c4-1.2 8.2-.4 11.6 2.2" stroke="#FFD60A" strokeWidth="6" strokeLinecap="round" fill="none" />
+      <circle cx="52" cy="52" r="9" fill="#E1001A" stroke="#111111" strokeWidth="3" />
     </svg>
   );
 }
