@@ -9,6 +9,9 @@ import AddSourceForm from '../components/workspace/AddSourceForm.jsx';
 import SourceList from '../components/workspace/SourceList.jsx';
 import SourceDialog from '../components/workspace/SourceDialog.jsx';
 import Findings, { TAB_FOR_TYPE } from '../components/workspace/Findings.jsx';
+import ExportBar from '../components/workspace/ExportBar.jsx';
+import DemoGuide from '../components/workspace/DemoGuide.jsx';
+import ScopeFields, { SCOPE_LABELS } from '../components/ScopeFields.jsx';
 import { Alert, EmptyState, FieldError, SkeletonLines, Tag } from '../components/ui.jsx';
 import { PROFILE_OPTIONS } from '../utils/labels.js';
 import { formatDateTime, formatNumber, plural } from '../utils/format.js';
@@ -16,6 +19,7 @@ import { formatDateTime, formatNumber, plural } from '../utils/format.js';
 function QuestionEditor({ session, onSaved, onCancel }) {
   const [value, setValue] = useState(session.question);
   const [profile, setProfile] = useState(session.profile);
+  const [context, setContext] = useState({ situation: '', location: '', period: '', ...session.context });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const ids = { q: useId(), err: useId(), p: useId() };
@@ -26,7 +30,7 @@ function QuestionEditor({ session, onSaved, onCancel }) {
     setBusy(true);
     setError('');
     try {
-      const { session: updated } = await researchApi.updateSession(session.id, { question: value.trim(), profile });
+      const { session: updated } = await researchApi.updateSession(session.id, { question: value.trim(), profile, context });
       onSaved(updated);
     } catch (err) {
       setError(err.fields?.question || err.message);
@@ -44,6 +48,7 @@ function QuestionEditor({ session, onSaved, onCancel }) {
       <select id={ids.p} className="select" value={profile} onChange={(e) => setProfile(e.target.value)}>
         {PROFILE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
+      <ScopeFields value={context} onChange={setContext} open />
       <div className="row">
         <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>{busy ? 'Saving…' : 'Save question'}</button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel} disabled={busy}>Cancel</button>
@@ -220,8 +225,18 @@ export default function WorkspacePage() {
           ) : (
             <>
               <h1 className="session-question">{session.question}</h1>
+              {Object.keys(session.context || {}).length > 0 && (
+                <dl className="scope-line">
+                  {Object.entries(session.context).map(([key, value]) => (
+                    <div key={key}>
+                      <dt>{SCOPE_LABELS[key] || key}</dt>
+                      <dd>{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
               {!session.demo && (
-                <button type="button" className="link-button small" onClick={() => setEditing(true)}>Edit question or research type</button>
+                <button type="button" className="link-button small" onClick={() => setEditing(true)}>Edit question, type or scope</button>
               )}
             </>
           )}
@@ -233,6 +248,17 @@ export default function WorkspacePage() {
           )}
         </header>
 
+        {session.demo && (
+          <DemoGuide
+            session={session}
+            analyzing={analyzing}
+            onAnalyze={analyze}
+            setActiveTab={setActiveTab}
+            goToFinding={goToFinding}
+            openSource={openSource}
+          />
+        )}
+
         <div className="workspace-grid">
           <aside className="panel sources-panel" aria-labelledby="sources-heading">
             <div className="section-head">
@@ -240,12 +266,12 @@ export default function WorkspacePage() {
             </div>
             {!session.demo && (
               remaining > 0 ? (
-                <AddSourceForm sessionId={session.id} onAdded={setSession} disabled={analyzing} remaining={remaining} autoFocus={session.sources.length === 0} />
+                <AddSourceForm sessionId={session.id} onAdded={setSession} disabled={analyzing} remaining={remaining} autoFocus={session.sources.length === 0} defaultQuery={session.question.slice(0, 120)} />
               ) : (
                 <Alert tone="info">This session has the maximum of {session.limits.maxSources} sources. Remove one to add another.</Alert>
               )
             )}
-            <SourceList sessionId={session.id} demo={session.demo} onChange={setSession} />
+            <SourceList sessionId={session.id} demo={session.demo} onChange={setSession} snapshot={session.analysis?.sourceSnapshot} />
             <div className="danger-zone">
               <button type="button" className="btn btn-danger btn-sm" onClick={deleteSession} disabled={deleting}>
                 {deleting ? 'Deleting…' : 'Delete this session'}
@@ -259,6 +285,7 @@ export default function WorkspacePage() {
               {session.analysis ? (
                 <>
                   <ScopeSummary analysis={session.analysis} sourceCount={session.sources.length} />
+                  <ExportBar sessionId={session.id} createdAt={session.createdAt} stale={session.analysisStale} />
                   <Findings
                     session={session}
                     activeTab={activeTab}

@@ -10,6 +10,7 @@ import {
   SCOPE_LEVEL,
 } from '../../utils/labels.js';
 import { formatDate, formatNumber } from '../../utils/format.js';
+import Timeline from './Timeline.jsx';
 
 export function GapList({ gaps, aiGaps }) {
   const { sourcesById } = useEvidence();
@@ -109,6 +110,7 @@ export function GapList({ gaps, aiGaps }) {
 }
 
 export function ContradictionList({ items, aiReviews }) {
+  const { claimsById } = useEvidence();
   if (!items.length) {
     return (
       <EmptyState title="No conflicting values detected">
@@ -136,11 +138,11 @@ export function ContradictionList({ items, aiReviews }) {
             </h3>
             <p>{item.explanation}</p>
             <div className="versus">
-              <Quote text={item.claimA.text} sourceId={item.claimA.sourceId} value={item.classification === 'list_difference' ? null : item.claimA.value} date={item.claimA.sourceDate} />
+              <Quote text={item.claimA.text} sourceId={item.claimA.sourceId} value={item.classification === 'list_difference' ? null : item.claimA.value} date={item.claimA.sourceDate} page={claimsById[item.claimA.claimId]?.page} />
               <span className="versus-mark" aria-hidden="true">
                 vs
               </span>
-              <Quote text={item.claimB.text} sourceId={item.claimB.sourceId} value={item.classification === 'list_difference' ? null : item.claimB.value} date={item.claimB.sourceDate} />
+              <Quote text={item.claimB.text} sourceId={item.claimB.sourceId} value={item.classification === 'list_difference' ? null : item.claimB.value} date={item.claimB.sourceDate} page={claimsById[item.claimB.claimId]?.page} />
             </div>
             <dl className="finding-facts">
               <div>
@@ -171,16 +173,19 @@ export function ContradictionList({ items, aiReviews }) {
   );
 }
 
-export function FreshnessList({ items }) {
+export function FreshnessList({ items, timeline, thresholdMonths }) {
   const { sourcesById } = useEvidence();
-  if (!items.length) {
-    return (
-      <EmptyState title="No freshness warnings">
-        Every reviewed source declares a date within the last 12 months and no stated deadline has passed.
-      </EmptyState>
-    );
-  }
   return (
+    <div className="stack">
+      <p className="small muted">
+        Freshness threshold for this type of research: {thresholdMonths} months. Sources older than this are flagged; undated sources
+        are reported as “publication date not established”, not as outdated.
+      </p>
+      {items.length === 0 ? (
+        <EmptyState title="No freshness warnings">
+          Every reviewed source declares a date within the threshold and no stated deadline has passed.
+        </EmptyState>
+      ) : (
     <ol className="finding-list">
       {items.map((item) => {
         const sev = FRESHNESS_SEVERITY[item.severity];
@@ -200,12 +205,15 @@ export function FreshnessList({ items }) {
               <p className="small muted">
                 {item.evidence?.date
                   ? `Date used: ${formatDate(item.evidence.date)} (${item.evidence.origin}).`
-                  : 'No declared publication or update date was found in the page metadata.'}
+                  : 'The source declares no publication or update date.'}
               </p>
             )}
           </li>
         );
       })}
     </ol>
+      )}
+      <Timeline timeline={timeline} />
+    </div>
   );
 }

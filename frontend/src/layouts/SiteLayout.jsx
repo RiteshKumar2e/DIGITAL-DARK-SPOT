@@ -4,7 +4,7 @@ import { Logo } from '../components/Logo.jsx';
 
 const NAV = [
   { to: '/#how-it-works', label: 'How it works', hash: true },
-  { to: '/#capabilities', label: 'Capabilities', hash: true },
+  { to: '/demo', label: 'Sample investigation' },
   { to: '/method', label: 'Method' },
   { to: '/research', label: 'Research workspace', end: true },
 ];
@@ -79,7 +79,7 @@ export default function SiteLayout() {
               ))}
               <li className="nav-cta">
                 <Link to="/research" className="btn btn-primary btn-sm">
-                  Start Research
+                  Start research
                 </Link>
               </li>
             </ul>
@@ -110,6 +110,9 @@ export default function SiteLayout() {
               </li>
               <li>
                 <Link to="/#how-it-works">How it works</Link>
+              </li>
+              <li>
+                <Link to="/demo">Sample investigation</Link>
               </li>
               <li>
                 <Link to="/method">Method</Link>

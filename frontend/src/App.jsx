@@ -7,6 +7,7 @@ import { Spinner } from './components/ui.jsx';
 // The workspace is the heaviest route; static pages are small.
 const WorkspacePage = lazy(() => import('./pages/WorkspacePage.jsx'));
 const ResearchPage = lazy(() => import('./pages/ResearchPage.jsx'));
+const DemoPage = lazy(() => import('./pages/DemoPage.jsx'));
 const MethodPage = lazy(() => import('./pages/MethodPage.jsx'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage.jsx'));
 const TermsPage = lazy(() => import('./pages/TermsPage.jsx'));
@@ -19,6 +20,7 @@ export default function App() {
         <Route element={<SiteLayout />}>
           <Route index element={<HomePage />} />
           <Route path="research" element={<ResearchPage />} />
+          <Route path="demo" element={<DemoPage />} />
           <Route path="research/:id" element={<WorkspacePage />} />
           <Route path="method" element={<MethodPage />} />
           <Route path="privacy" element={<PrivacyPage />} />

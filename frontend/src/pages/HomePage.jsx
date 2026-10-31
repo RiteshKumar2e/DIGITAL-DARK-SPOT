@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import SampleSessionButton from '../components/SampleSessionButton.jsx';
 import { Tag } from '../components/ui.jsx';
 import { usePageMeta } from '../hooks/usePageMeta.js';
 
@@ -15,22 +14,19 @@ const DEMO_STEPS = [
 ];
 
 const WORKFLOW = [
-  ['Define the question', 'State what you need to decide, as specifically as you can. The type of research decides which kinds of information are checked.'],
-  ['Collect sources', 'Add the pages you found: official notices, news, blogs, forums. Paste text from PDFs or pages that block automated access.'],
-  ['Analyse', 'Each page is retrieved and read on the server. Relevant sentences, dates, amounts and document names are extracted exactly as written.'],
-  ['Review gaps and conflicts', 'See which topics no source covers, where sources state different values, and which pages look dated.'],
-  ['Inspect the evidence', 'Open any finding to see the sentence it is based on, highlighted in the full retrieved text of its source.'],
-  ['Work through the checklist', 'Every finding becomes a prioritised verification task you can tick off. Progress is saved with the session.'],
+  ['Collect', 'Ask your question, then add sources: web pages, PDF documents, pasted text, or search results when search is enabled. Each source is retrieved on the server and shows whether it could be read.'],
+  ['Investigate', 'Statements are extracted word for word. The analysis checks which topics no source covers, where sources state different values, and which sources look dated.'],
+  ['Verify', 'Every finding links to its evidence and becomes a prioritised checklist item. Export the report when you are done.'],
 ];
 
 const CAPABILITIES = [
-  ['Multi-source review', 'Up to ten pages or pasted texts per session, each with its retrieval status, word count and declared dates.'],
+  ['Multi-source review', 'Up to ten web pages, PDF documents or pasted texts per session, each with its retrieval status, declared dates and an official-domain signal.'],
   ['Structured extraction', 'Statements are grouped by topic (eligibility, deadline, amount, documents, renewal…) in a coverage table across sources.'],
   ['Potential gap detection', 'Topics your research type needs that no reviewed source mentions are listed as “not found in the sources reviewed”, with the search scope.'],
   ['Conflict identification', 'Different dates, amounts, age or income limits and document lists are shown side by side, with likely explanations such as a different cycle.'],
   ['Freshness warnings', 'Old publication dates, passed deadlines and undated pages are flagged, and the reason for each warning is stated.'],
-  ['Source-linked evidence', 'Every quote opens the original text with the passage highlighted, plus a link to the live page.'],
-  ['Prioritised verification', 'High-priority items cover blockers such as eligibility, deadlines and conflicts; each explains why it matters.'],
+  ['Source-linked evidence', 'Every quote opens the original text with the passage highlighted, a page number for PDFs, and a link to the live page.'],
+  ['Prioritised verification and export', 'High-priority items cover blockers such as eligibility, deadlines and conflicts. The full report exports as Markdown or a printable page.'],
   ['Transparent uncertainty', 'Evidence strength reflects how much text was actually reviewed. AI suggestions, when enabled, are labelled and quote-checked.'],
 ];
 
@@ -49,18 +45,17 @@ export default function HomePage() {
           <div className="hero-copy">
             <p className="eyebrow">AI-assisted research intelligence</p>
             <h1 id="hero-heading">
-              Find what’s <span className="underline-mark">missing</span> from the information you trust.
+              Find what the sources <span className="underline-mark">leave out</span>.
             </h1>
             <p className="lede">
-              Compare information across sources, uncover unanswered questions, identify conflicting claims, and discover what to
-              verify next.
+              Compare evidence, uncover missing details, flag conflicting claims, and know what to verify next.
             </p>
             <div className="hero-actions">
               <Link to="/research" className="btn btn-primary btn-lg">
-                Start Research
+                Start a research session
               </Link>
-              <Link to="/#how-it-works" className="btn btn-secondary btn-lg">
-                See How It Works
+              <Link to="/demo" className="btn btn-secondary btn-lg">
+                Explore a sample investigation
               </Link>
             </div>
             <p className="small muted">No account needed. Findings are prompts to verify, not verdicts.</p>
@@ -81,6 +76,26 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="section container problem" aria-labelledby="problem-heading">
+        <div className="problem-grid">
+          <div className="section-intro">
+            <p className="eyebrow">The information-gap problem</p>
+            <h2 id="problem-heading">Search finds pages. Summaries condense them. Neither tells you what is missing.</h2>
+          </div>
+          <ul className="problem-list">
+            <li>
+              <strong>Incomplete.</strong> Eligibility is explained, but renewal conditions or the full document list are not.
+            </li>
+            <li>
+              <strong>Contradictory.</strong> An official notice and a blog give different deadlines or amounts.
+            </li>
+            <li>
+              <strong>Outdated.</strong> A forum answer describes last year’s application cycle, with no date on the page.
+            </li>
+          </ul>
+        </div>
+      </section>
+
       <section id="demo" tabIndex={-1} className="section demo" aria-labelledby="demo-heading">
         <div className="container demo-grid">
           <div className="demo-intro">
@@ -92,7 +107,9 @@ export default function HomePage() {
               for demonstration, not real pages.
             </p>
             <div className="row">
-              <SampleSessionButton className="btn btn-primary">Open the sample session</SampleSessionButton>
+              <Link to="/demo" className="btn btn-primary">
+                Explore the sample investigation
+              </Link>
               <Link to={`/research?q=${encodeURIComponent(EXAMPLE_QUESTION)}`} className="btn btn-ghost">
                 Use this question with your own sources
               </Link>
@@ -119,7 +136,7 @@ export default function HomePage() {
       <section id="how-it-works" tabIndex={-1} className="section container" aria-labelledby="how-heading">
         <div className="section-intro">
           <p className="eyebrow">How it works</p>
-          <h2 id="how-heading">From question to checklist in six steps</h2>
+          <h2 id="how-heading">Collect, investigate, verify</h2>
         </div>
         <ol className="steps">
           {WORKFLOW.map(([title, text], index) => (
@@ -193,7 +210,7 @@ export default function HomePage() {
         <div className="container final-cta-inner">
           <h2 id="final-heading">Have a decision to make? Check your sources first.</h2>
           <Link to="/research" className="btn btn-primary btn-lg">
-            Start Research
+            Start a research session
           </Link>
         </div>
       </section>

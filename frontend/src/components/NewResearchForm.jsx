@@ -4,6 +4,7 @@ import { researchApi } from '../services/researchApi.js';
 import { rememberSession } from '../hooks/useRecentSessions.js';
 import { PROFILE_OPTIONS } from '../utils/labels.js';
 import { Alert, FieldError } from './ui.jsx';
+import ScopeFields from './ScopeFields.jsx';
 
 const MIN = 10;
 const MAX = 500;
@@ -13,6 +14,7 @@ export default function NewResearchForm({ initialQuestion = '' }) {
   const ids = { q: useId(), qHelp: useId(), qErr: useId(), profile: useId(), hp: useId() };
   const [question, setQuestion] = useState(initialQuestion);
   const [profile, setProfile] = useState('auto');
+  const [context, setContext] = useState({ situation: '', location: '', period: '' });
   const [website, setWebsite] = useState('');
   const [fieldError, setFieldError] = useState('');
   const [formError, setFormError] = useState('');
@@ -37,7 +39,7 @@ export default function NewResearchForm({ initialQuestion = '' }) {
     }
     setBusy('create');
     try {
-      const { session } = await researchApi.createSession({ question: question.trim(), profile, website });
+      const { session } = await researchApi.createSession({ question: question.trim(), profile, context, website });
       rememberSession(session);
       navigate(`/research/${session.id}`, { state: { justCreated: true } });
     } catch (error) {
@@ -109,6 +111,8 @@ export default function NewResearchForm({ initialQuestion = '' }) {
         <p className="hint">This decides which kinds of information are checked for gaps.</p>
       </div>
 
+      <ScopeFields value={context} onChange={setContext} />
+
       <div className="honeypot" aria-hidden="true">
         <label htmlFor={ids.hp}>Leave this field empty</label>
         <input id={ids.hp} type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
@@ -125,10 +129,10 @@ export default function NewResearchForm({ initialQuestion = '' }) {
       <div className="form-actions">
         <button type="submit" className="btn btn-primary" disabled={Boolean(busy)}>
           {busy === 'create' && <span className="spinner" aria-hidden="true" />}
-          {busy === 'create' ? 'Starting…' : 'Start research session'}
+          {busy === 'create' ? 'Starting…' : 'Start a research session'}
         </button>
         <button type="button" className="link-button" onClick={startDemo} disabled={Boolean(busy)}>
-          {busy === 'demo' ? 'Opening sample…' : 'Or explore a sample session with simulated sources'}
+          {busy === 'demo' ? 'Opening sample…' : 'Or explore a sample investigation with simulated sources'}
         </button>
       </div>
     </form>

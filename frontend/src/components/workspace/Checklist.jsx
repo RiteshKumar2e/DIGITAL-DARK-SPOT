@@ -101,12 +101,15 @@ export default function Checklist({ sessionId, items, onItemsChange, onGoToFindi
 
   return (
     <div className="stack checklist">
+      <p className="small muted">
+        Ticking an item records that you checked it. It does not mean this tool has verified the fact.
+      </p>
       <div className="checklist-head">
         <div className="progress" role="group" aria-label="Checklist progress">
           <p>
-            <strong>{done}</strong> of {items.length} verified
+            <strong>{done}</strong> of {items.length} marked done
           </p>
-          <progress max={items.length || 1} value={done} aria-label={`${done} of ${items.length} items verified`} />
+          <progress max={items.length || 1} value={done} aria-label={`${done} of ${items.length} items marked done`} />
         </div>
         <fieldset className="segmented">
           <legend className="visually-hidden">Show</legend>
@@ -126,7 +129,7 @@ export default function Checklist({ sessionId, items, onItemsChange, onGoToFindi
       {error && <Alert tone="error">{error}</Alert>}
 
       {visible.length === 0 ? (
-        <EmptyState title={filter === 'done' ? 'Nothing marked as verified yet' : items.length ? 'Everything here is verified' : 'No checklist items'}>
+        <EmptyState title={filter === 'done' ? 'Nothing marked as done yet' : items.length ? 'Every item is marked as done' : 'No checklist items'}>
           {filter === 'open' && items.length > 0
             ? 'All items are marked as done. Re-run the analysis if you add new sources.'
             : 'Items appear after an analysis, and you can add your own below.'}
@@ -150,10 +153,20 @@ export default function Checklist({ sessionId, items, onItemsChange, onGoToFindi
                   </label>
                   <div className="row small">
                     <Tag tone={priority.tone}>{priority.label}</Tag>
-                    {item.done && <Tag tone="ok">Verified</Tag>}
+                    {item.done && <Tag tone="ok">Marked done by you</Tag>}
                     {item.origin === 'user' && <Tag plain>Added by you</Tag>}
                   </div>
                   <p className="small muted">{item.rationale}</p>
+                  {item.destination?.type === 'search' && !item.done && (
+                    <p className="small">
+                      <span className="muted">Where to check:</span> {item.destination.note} Suggested search: “{item.destination.query}”
+                    </p>
+                  )}
+                  {item.destination?.type === 'source' && !item.done && (
+                    <p className="small row">
+                      <span className="muted">Where to check:</span> <SourceRef sourceId={item.destination.sourceId} />
+                    </p>
+                  )}
                   <div className="row small">
                     {item.relatedType && (
                       <button type="button" className="link-button" onClick={() => onGoToFinding(item.relatedType, item.relatedId)}>
