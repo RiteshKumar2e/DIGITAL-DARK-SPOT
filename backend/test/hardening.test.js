@@ -77,4 +77,9 @@ test('PDF line wrapping is undone without merging separate sentences or real com
     joinWrappedLines('show these models to\nbe more paral-\nlelizable.\nOn the English-\nto-German task.\n\nNext.'),
     'show these models to be more parallelizable.\nOn the English-to-German task.\n\nNext.',
   );
+  // Headings stay on their own line instead of being glued to the next sentence.
+  assert.equal(
+    joinWrappedLines('3. Scholarship amount\nThe scholarship amount is 60,000 per year, paid directly to the student in two\ninstalments.'),
+    '3. Scholarship amount\nThe scholarship amount is 60,000 per year, paid directly to the student in two instalments.',
+  );
 });

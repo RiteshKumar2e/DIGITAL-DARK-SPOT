@@ -101,7 +101,14 @@ export function joinWrappedLines(text) {
   return text
     .replace(/([a-z])-\n(?=[a-z]+-)/g, '$1-') // "English-\nto-German": a real compound, keep the hyphen
     .replace(/([a-z])-\n([a-z])/g, '$1$2')
-    .replace(/([^\n.!?:;])\n(?=[^\n])/g, '$1 ');
+    .split('\n')
+    .reduce((out, line, index, lines) => {
+      const next = lines[index + 1];
+      // A short unpunctuated line followed by a capitalised one is a heading, not a wrapped line.
+      const heading = line.trim().length < 50 && /^\s*[A-Z0-9]/.test(next || '');
+      const joins = next && line && !/[.!?:;]$/.test(line) && !heading;
+      return out + line + (index === lines.length - 1 ? '' : joins ? ' ' : '\n');
+    }, '');
 }
 
 /** Page number containing a character offset, for PDF citations. */
