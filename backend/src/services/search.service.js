@@ -23,19 +23,18 @@ const PROVIDERS = {
       return (data.results || []).map((r) => ({ title: r.title, url: r.url, snippet: r.content, published: r.published_date || null }));
     },
   },
-  brave: {
-    label: 'Brave Search',
-    key: () => config.search.braveKey,
+  serper: {
+    label: 'Serper (Google results)',
+    key: () => config.search.serperKey,
     async search(query, signal) {
-      const url = new URL('https://api.search.brave.com/res/v1/web/search');
-      url.searchParams.set('q', query);
-      url.searchParams.set('count', String(config.search.maxResults));
-      const res = await fetch(url, {
+      const res = await fetch('https://google.serper.dev/search', {
+        method: 'POST',
         signal,
-        headers: { Accept: 'application/json', 'X-Subscription-Token': config.search.braveKey },
+        headers: { 'Content-Type': 'application/json', 'X-API-KEY': config.search.serperKey },
+        body: JSON.stringify({ q: query, num: config.search.maxResults }),
       });
       const data = await readJson(res);
-      return (data.web?.results || []).map((r) => ({ title: r.title, url: r.url, snippet: r.description, published: r.page_age || null }));
+      return (data.organic || []).map((r) => ({ title: r.title, url: r.link, snippet: r.snippet, published: r.date || null }));
     },
   },
 };

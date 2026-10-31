@@ -11,7 +11,7 @@ process.env.DATA_FILE = path.join(dir, 'sessions.json');
 process.env.GROQ_API_KEY = '';
 process.env.SEARCH_PROVIDER = '';
 process.env.TAVILY_API_KEY = '';
-process.env.BRAVE_SEARCH_API_KEY = '';
+process.env.SERPER_API_KEY = '';
 
 const { createApp } = await import('../src/app.js');
 const { loadStore } = await import('../src/services/store.service.js');

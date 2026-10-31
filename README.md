@@ -72,7 +72,7 @@ Digital Dark Spot turns a research question and a set of sources into an inspect
 | Feature | What it does |
 | --- | --- |
 | **Research sessions** | A question, a research type (scholarship, job, public service, research, general, or auto-detect) and an optional scope. Sessions persist and can be reopened from the same device. |
-| **Four ways to add sources** | Web page URL (HTML, plain text or PDF links), **PDF upload** with page-by-page extraction, pasted text, and **web search** (Tavily or Brave) when configured. Up to 10 sources per session. |
+| **Four ways to add sources** | Web page URL (HTML, plain text or PDF links), **PDF upload** with page-by-page extraction, pasted text, and **web search** (Tavily or Serper) when configured. Up to 10 sources per session. |
 | **Source manager** | Title, link or file name, retrieval status and timestamp, declared dates, word and page count, official-domain signal with its basis, retry, removal, and a flag when content changed since the last analysis. |
 | **Potential gap detection** | Topics the research type needs that no reviewed source covers, values mentioned without specifics, critical topics backed by one source, a year or place in your scope that no source mentions, and parts of your question that go unaddressed. |
 | **Contradiction analysis** | Deadlines, amounts, fees, age and income limits, marks and required-document lists compared across sources. Classified as possible contradiction, document lists differ, different cycle, different scope or different units. |
@@ -168,7 +168,7 @@ flowchart TB
         DB[(sessions.json<br/>atomic writes)]
     end
     W[(Public websites)]
-    T[(Tavily / Brave<br/>optional)]
+    T[(Tavily / Serper<br/>optional)]
     G[(Groq<br/>optional)]
 
     UI -- REST / JSON --> R --> S --> DB
@@ -234,9 +234,9 @@ On start, the backend prints whether AI review and web search are enabled. Open 
 | `MAX_PDF_MB` | `10` | PDF upload and download limit |
 | `GROQ_API_KEY` | *(empty)* | Enables the optional AI review |
 | `GROQ_MODEL` | `openai/gpt-oss-120b` | Groq model with JSON mode |
-| `SEARCH_PROVIDER` | *(empty)* | `tavily` or `brave`; empty uses whichever key is set |
+| `SEARCH_PROVIDER` | *(empty)* | `tavily` or `serper`; empty uses whichever key is set |
 | `TAVILY_API_KEY` | *(empty)* | Key from tavily.com |
-| `BRAVE_SEARCH_API_KEY` | *(empty)* | Key from the Brave Search API |
+| `SERPER_API_KEY` | *(empty)* | Key from serper.dev (Google results) |
 
 The server validates configuration at startup: invalid values stop it with a clear message, and questionable ones print warnings. Secret values are never printed.
 
@@ -252,7 +252,7 @@ Public values only; everything here is bundled into the browser.
 ### Enabling optional integrations
 
 - **AI review:** set `GROQ_API_KEY` and restart the backend.
-- **Web search:** set `SEARCH_PROVIDER=tavily` with `TAVILY_API_KEY`, or `SEARCH_PROVIDER=brave` with `BRAVE_SEARCH_API_KEY`, then restart. Without a key, the Search tab says so and manual sources keep working. No results are ever simulated.
+- **Web search:** set `SEARCH_PROVIDER=tavily` with `TAVILY_API_KEY`, or `SEARCH_PROVIDER=serper` with `SERPER_API_KEY`, then restart. Both providers offer free tiers (check their current limits). Without a key, the Search tab says so and manual sources keep working. No results are ever simulated.
 
 ## API reference
 

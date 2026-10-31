@@ -40,7 +40,7 @@ export const config = {
   search: {
     provider: (process.env.SEARCH_PROVIDER || '').toLowerCase(),
     tavilyKey: process.env.TAVILY_API_KEY || '',
-    braveKey: process.env.BRAVE_SEARCH_API_KEY || '',
+    serperKey: process.env.SERPER_API_KEY || '',
     timeoutMs: 10000,
     maxResults: 8,
   },

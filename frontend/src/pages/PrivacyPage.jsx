@@ -49,7 +49,7 @@ export default function PrivacyPage() {
       <h2>Web search</h2>
       <p>
         If the operator has enabled web search, the search terms you type are sent to the configured search provider (Tavily or
-        Brave Search) to return results. Their terms and privacy policies apply. Search results are not stored unless you add one as
+        Serper) to return results. Their terms and privacy policies apply. Search results are not stored unless you add one as
         a source. [Operator to confirm which provider is used: DRAFT.]
       </p>
 

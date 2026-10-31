@@ -46,7 +46,7 @@ function SearchPanel({ sessionId, onAdded, disabled, status, defaultQuery }) {
     return (
       <Alert tone="info" title="Web search is not configured on this server">
         Add page addresses with <strong>Web page</strong>, upload a PDF, or paste text. To enable search, the operator sets{' '}
-        <code>SEARCH_PROVIDER</code> and a Tavily or Brave Search API key in the backend environment.
+        <code>SEARCH_PROVIDER</code> and a Tavily or Serper API key in the backend environment.
       </Alert>
     );
   }
