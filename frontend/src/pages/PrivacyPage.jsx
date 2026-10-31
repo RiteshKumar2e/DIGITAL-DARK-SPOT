@@ -24,8 +24,8 @@ export default function PrivacyPage() {
 
       <h2>What you submit and what is stored</h2>
       <ul>
-        <li><strong>Research question and research type</strong> you enter.</li>
-        <li><strong>Sources:</strong> the web addresses you add, and the text retrieved from them (up to about 60,000 characters per source), or text you paste.</li>
+        <li><strong>Research question, research type and optional scope</strong> (situation, location, time period) you enter.</li>
+        <li><strong>Sources:</strong> the web addresses you add and the text retrieved from them (up to about 60,000 characters per source), text you paste, and the text extracted from PDF files you upload. Uploaded PDF files themselves are not stored: only their file name, page count and extracted text are kept.</li>
         <li><strong>Analysis results and checklist</strong> including which items you marked as done.</li>
       </ul>
       <p>
@@ -46,10 +46,17 @@ export default function PrivacyPage() {
         our server, not from your device.
       </p>
 
+      <h2>Web search</h2>
+      <p>
+        If the operator has enabled web search, the search terms you type are sent to the configured search provider (Tavily or
+        Brave Search) to return results. Their terms and privacy policies apply. Search results are not stored unless you add one as
+        a source. [Operator to confirm which provider is used: DRAFT.]
+      </p>
+
       <h2>AI processing</h2>
       <p>
-        If the operator has enabled AI review, your question and the retrieved source text are sent to Groq, Inc. for processing
-        when you run an analysis. Each analysis shows whether AI review was used. Groq’s own terms and privacy policy apply to that
+        If the operator has enabled AI review, your question, scope and the extracted source text (including text from uploaded PDFs) are sent
+        to Groq, Inc. for processing when you run an analysis. Each analysis shows whether AI review was used. Groq’s own terms and privacy policy apply to that
         processing. [Operator to confirm the data processing terms with Groq: DRAFT.]
       </p>
 
@@ -74,7 +81,7 @@ export default function PrivacyPage() {
 
       <h2>Your choices</h2>
       <p>
-        You can delete any session at any time. For other requests about your data, contact the operator. [Contact details and the
+        You can delete any session at any time, and export its report before doing so. For other requests about your data, contact the operator. [Contact details and the
         applicable data protection rights: DRAFT, review required.]
       </p>
     </article>

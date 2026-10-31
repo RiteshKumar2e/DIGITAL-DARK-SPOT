@@ -53,7 +53,9 @@ const STOPWORDS = new Set(
     'where which who whom why will with would you your about any all also am get got need needs want find know ' +
     'tell show give check information info details detail please regarding related latest current new more most ' +
     'some such other only same very just like make made between whether using use used while each per both via ' +
-    'research question topic apply applying applicant applicants available official rules rule guidelines').split(' '),
+    'research question topic apply applying applicant applicants available official rules rule guidelines ' +
+    'verify verified verification before after during sure still every whether currently going possible exactly ' +
+    'look looking search searching able allowed someone anyone people person things thing kind type').split(' '),
 );
 
 /** Content words of a question, used to check whether sources address it. */

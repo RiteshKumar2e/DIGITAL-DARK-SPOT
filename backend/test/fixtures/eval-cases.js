@@ -31,13 +31,14 @@ export const EVAL_CASES = [
   },
   {
     name: 'Missing renewal conditions',
-    question: 'Can the Lotus Scholarship be renewed every year?',
+    question: 'What should I verify before applying, and can the Lotus Scholarship be renewed every year?',
     profile: 'scholarship',
     sources: [
       { id: 'a', text: 'Lotus Scholarship. Eligibility: students must be enrolled in a recognised university. The scholarship amount is Rs. 40,000 per year. The last date to apply is 30 November 2026. Required documents: mark sheet and income certificate.', published: '2026-08-01' },
     ],
     expect: [{ type: 'gap', facet: 'renewal', kind: 'missing' }],
-    forbid: [{ type: 'gap', facet: 'eligibility', kind: 'missing' }],
+    // Generic words such as "verify" or "before" must not be reported as uncovered topics.
+    forbid: [{ type: 'gap', facet: 'eligibility', kind: 'missing' }, { type: 'gap', kind: 'question_term' }],
   },
   {
     name: 'Conflicting required-document lists',

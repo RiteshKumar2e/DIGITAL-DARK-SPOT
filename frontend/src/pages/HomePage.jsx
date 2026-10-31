@@ -191,14 +191,14 @@ export default function HomePage() {
               <li><Tag tone="source">Source text</Tag> Copied word for word from a retrieved source.</li>
               <li><Tag tone="ai">AI-generated, unverified</Tag> Written by a language model, when AI review is enabled.</li>
               <li><Tag tone="sample">Simulated</Tag> Demonstration content that is not real.</li>
-              <li><Tag tone="info">Date unavailable</Tag> The page declares no date, so its currency is unknown.</li>
+              <li><Tag tone="info">Date not established</Tag> The source declares no date, so its currency is unknown.</li>
             </ul>
           </div>
           <aside className="limits" aria-labelledby="limits-heading">
             <h3 id="limits-heading">What it does not do</h3>
             <ul>
-              <li>It does not search the web. It reviews the sources you add.</li>
-              <li>It cannot read pages behind logins, paywalls or bot protection.</li>
+              <li>It reviews only the sources you add or select from search results; it never claims to have checked the whole web.</li>
+              <li>It cannot read pages behind logins, paywalls or bot protection, or scanned PDFs without a text layer.</li>
               <li>It does not decide what is true or give legal, financial or admissions advice.</li>
             </ul>
             <Link to="/method">Read the full method and its limits</Link>
