@@ -26,7 +26,9 @@ function valuesDiffer(type, a, b) {
     case 'date':
       return a.precision === b.precision && a.iso !== b.iso;
     case 'money':
-      return a.currency === b.currency && Math.abs(a.amount - b.amount) / Math.max(a.amount, b.amount, 1) > 0.005;
+      // Different currencies are reported as not comparable rather than skipped silently.
+      if (a.currency !== b.currency) return true;
+      return Math.abs(a.amount - b.amount) / Math.max(a.amount, b.amount, 1) > 0.005;
     case 'age':
       return (a.max !== null && b.max !== null && a.max !== b.max) || (a.min !== null && b.min !== null && a.min !== b.min);
     case 'percent':
@@ -45,9 +47,25 @@ function contextYears(claim, source) {
   return { years: findYears(`${source?.title || ''} ${heading}`), fromHeading: true };
 }
 
+// A numeric date such as 05/06/2026 read the other way round (month-first).
+function swappedIso(value) {
+  const [y, m, d] = value.iso.split('-');
+  return `${y}-${d}-${m}`;
+}
+
 function classify(type, claimA, claimB, valueA, valueB, srcA, srcB) {
   const reasons = [];
   let classification = 'possible_conflict';
+
+  if (type === 'money' && valueA.currency !== valueB.currency) {
+    return {
+      classification: 'not_comparable',
+      reasons: [
+        `The amounts are in different currencies (${valueA.currency} and ${valueB.currency}), so they cannot be compared without an exchange rate and context.`,
+        'They may describe different programmes, countries or applicant groups.',
+      ],
+    };
+  }
 
   if (type === 'date') {
     const yA = Number(valueA.iso.slice(0, 4));
@@ -56,7 +74,14 @@ function classify(type, claimA, claimB, valueA, valueB, srcA, srcB) {
       classification = 'different_cycle';
       reasons.push(`The dates fall in different years (${yA} and ${yB}), so the sources may describe different application cycles.`);
     }
-    if (valueA.ambiguous || valueB.ambiguous) reasons.push('At least one date is written in a numeric format (such as 05/06/2025) that can be read day-first or month-first.');
+    if ((valueA.ambiguous || valueB.ambiguous) && classification === 'possible_conflict') {
+      classification = 'inconclusive';
+      const sameWhenSwapped = (valueA.ambiguous && swappedIso(valueA) === valueB.iso) || (valueB.ambiguous && swappedIso(valueB) === valueA.iso);
+      reasons.push('At least one date is written in a numeric format (such as 05/06/2026) that can be read day-first or month-first.');
+      if (sameWhenSwapped) reasons.push('Read the other way round, the two dates are the same, so this may not be a disagreement at all.');
+    } else if (valueA.ambiguous || valueB.ambiguous) {
+      reasons.push('At least one date is written in a numeric format (such as 05/06/2026) that can be read day-first or month-first.');
+    }
   } else {
     const a = contextYears(claimA, srcA);
     const b = contextYears(claimB, srcB);
@@ -85,6 +110,19 @@ function classify(type, claimA, claimB, valueA, valueB, srcA, srcB) {
 
   reasons.push('One of the sources may be outdated, unofficial, or describe a different scheme or edition.');
   return { classification, reasons };
+}
+
+function explain(classification, label, a, b) {
+  if (classification === 'possible_conflict') {
+    return `The two sources state different values for ${label} (${a} vs ${b}), and no obvious difference in scope was detected.`;
+  }
+  if (classification === 'inconclusive') {
+    return `The sources give ${a} and ${b} for ${label}, but the written format is ambiguous, so it cannot be established whether they disagree.`;
+  }
+  if (classification === 'not_comparable') {
+    return `The sources give ${a} and ${b} for ${label}. These cannot be compared directly, so no conflict is claimed.`;
+  }
+  return `The two sources state different values for ${label} (${a} vs ${b}), but this may be explained by a difference in scope rather than a true contradiction.`;
 }
 
 /**
@@ -136,17 +174,14 @@ export function detectContradictions({ claims, sourcesById, facetKeys }) {
         classification,
         claimA: { claimId: a.id, sourceId: a.sourceId, text: a.text, value: formatValue(type, va), sourceDate: srcA?.dateInfo?.best || null },
         claimB: { claimId: b.id, sourceId: b.sourceId, text: b.text, value: formatValue(type, vb), sourceDate: srcB?.dateInfo?.best || null },
-        explanation:
-          classification === 'possible_conflict'
-            ? `The two sources state different values for ${FACETS[facet].label.toLowerCase()} (${formatValue(type, va)} vs ${formatValue(type, vb)}), and no obvious difference in scope was detected.`
-            : `The two sources state different values for ${FACETS[facet].label.toLowerCase()} (${formatValue(type, va)} vs ${formatValue(type, vb)}), but this may be explained by a difference in scope rather than a true contradiction.`,
+        explanation: explain(classification, FACETS[facet].label.toLowerCase(), formatValue(type, va), formatValue(type, vb)),
         possibleReasons: reasons,
         recommendation: 'Check the issuing organisation’s official, most recently updated page to see which value currently applies.',
       });
       if (findings.length >= MAX_FINDINGS) return findings;
     }
   }
-  const order = { possible_conflict: 0, scope_difference: 1, unit_difference: 2, different_cycle: 3 };
+  const order = { possible_conflict: 0, scope_difference: 1, unit_difference: 2, inconclusive: 3, not_comparable: 4, different_cycle: 5 };
   return findings.sort((x, y) => order[x.classification] - order[y.classification]);
 }
 

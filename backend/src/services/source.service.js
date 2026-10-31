@@ -30,6 +30,13 @@ function applyExtraction(source, extracted) {
   source.excerpt = truncate(source.text.replace(/\n+/g, ' '), 320);
 }
 
+// Short pages dominated by consent banners, JavaScript notices or bot checks.
+const INTERSTITIAL = /(enable javascript|javascript is (?:disabled|required)|please turn on javascript|accept (?:all )?cookies|cookie (?:settings|consent|preferences)|we use cookies|verify (?:that )?you are (?:a )?human|are you a robot|checking your browser|captcha|access denied)/i;
+
+export function looksLikeInterstitial(source) {
+  return source.wordCount < 200 && INTERSTITIAL.test(source.text || '');
+}
+
 /** Retrieves a URL source and fills in its content. Mutates and returns the source. */
 export async function retrieveUrlSource(source) {
   source.status = 'retrieving';
@@ -58,6 +65,13 @@ export async function retrieveUrlSource(source) {
     if (source.format === 'pdf' && source.wordCount < MIN_USEFUL_WORDS) {
       source.status = 'failed';
       source.error = { code: 'no_text_layer', message: SCANNED_MESSAGE };
+    } else if (looksLikeInterstitial(source)) {
+      source.status = 'failed';
+      source.error = {
+        code: 'interstitial',
+        message:
+          'The page returned a cookie, JavaScript or bot-check notice instead of its content, so it was not analysed. Open it in your browser and paste the relevant text instead.',
+      };
     } else if (source.wordCount < MIN_USEFUL_WORDS) {
       source.status = 'failed';
       source.error = {

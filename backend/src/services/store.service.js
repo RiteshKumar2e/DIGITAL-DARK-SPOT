@@ -31,16 +31,22 @@ export async function loadStore() {
   loaded = true;
 }
 
+export class StorageError extends Error {}
+
+// Writes are serialised and atomic (temp file + rename), so a failed write
+// leaves the previous file intact. The failure is returned to the caller.
 function persist() {
-  writeChain = writeChain
-    .then(async () => {
-      await fs.mkdir(path.dirname(config.dataFile), { recursive: true });
-      const tmp = `${config.dataFile}.${process.pid}.tmp`;
-      await fs.writeFile(tmp, JSON.stringify({ version: 1, sessions: [...sessions.values()] }), 'utf8');
-      await fs.rename(tmp, config.dataFile);
-    })
-    .catch((error) => console.error('[store] write failed:', error.message));
-  return writeChain;
+  const write = writeChain.then(async () => {
+    await fs.mkdir(path.dirname(config.dataFile), { recursive: true });
+    const tmp = `${config.dataFile}.${process.pid}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify({ version: 1, sessions: [...sessions.values()] }), 'utf8');
+    await fs.rename(tmp, config.dataFile);
+  });
+  writeChain = write.catch(() => {});
+  return write.catch((error) => {
+    console.error('[store] write failed:', error.code || error.message);
+    throw new StorageError('The change could not be saved on the server. Please try again.');
+  });
 }
 
 export const getSession = (id) => sessions.get(id) || null;

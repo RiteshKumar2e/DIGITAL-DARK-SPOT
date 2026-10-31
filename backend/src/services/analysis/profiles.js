@@ -10,11 +10,11 @@
 export const FACETS = {
   eligibility: {
     label: 'Eligibility criteria',
-    pattern: /\b(eligib\w*|who can apply|open to|must be (?:a|an|enrolled|registered|resident|citizen)|applicants? (?:must|should)|criteria|qualif(?:y|ies|ied|ication)s?)\b/i,
+    pattern: /\b(eligib\w*|who can apply|who may apply|can apply|open to|candidates (?:must|should)|requirements? for applicants|must be (?:a|an|enrolled|registered|resident|citizen)|applicants? (?:must|should)|criteria|qualif(?:y|ies|ied|ication)s?)\b/i,
   },
   deadline: {
     label: 'Deadline / last date',
-    pattern: /\b(deadline|last date|closing date|closes on|apply (?:by|before)|due (?:date|by)|submissions? (?:close|due)|applications? (?:close[ds]?|closing|must be received)|closed on|accepted (?:till|until))\b/i,
+    pattern: /\b(deadline|last date|closing date|closes on|apply (?:by|before)|due (?:date|by)|submissions? (?:close|due)|applications? (?:close[ds]?|closing|must be received)|closed on|accepted (?:till|until|up to)|last day|on or before|submission deadline|apply no later than|open (?:till|until))\b/i,
     valueType: 'date',
   },
   amount: {

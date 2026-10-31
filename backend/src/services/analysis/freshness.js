@@ -26,7 +26,17 @@ export function detectFreshness({ sources, claims, now = new Date(), staleMonths
 
   for (const source of sources) {
     const info = source.dateInfo;
-    if (info.best) {
+    if (info.best && toEndDate(info.best.value).getTime() - now.getTime() > 2 * 24 * 60 * 60 * 1000) {
+      warnings.push({
+        id: `fresh_${source.id}_future`,
+        sourceId: source.id,
+        kind: 'future_date',
+        severity: 'medium',
+        title: 'Declared date is in the future',
+        explanation: `The source declares the date ${info.best.value} (${info.best.origin}), which is after the analysis date. The date may be wrong or refer to a planned publication, so the source's freshness cannot be assessed.`,
+        evidence: { date: info.best.value, origin: info.best.origin },
+      });
+    } else if (info.best) {
       const months = monthsBetween(toEndDate(info.best.value), now);
       const which = source.modified ? 'last updated' : 'published';
       if (months > staleMonths * 2) {
@@ -83,7 +93,7 @@ export function detectFreshness({ sources, claims, now = new Date(), staleMonths
           kind: 'past_deadline',
           severity: 'high',
           title: `A stated deadline (${date.raw}) has already passed`,
-          explanation: 'This may describe a previous cycle, or the deadline may have been extended. Look for the current cycle’s dates.',
+          explanation: 'This may describe a previous cycle, or the deadline may have been extended. A passed date does not by itself show that the source is wrong. Look for the current cycle’s dates.',
           evidence: { date: date.iso, origin: 'Stated in source text', quote: claim.text },
         });
       }

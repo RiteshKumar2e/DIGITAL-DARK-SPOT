@@ -51,8 +51,11 @@ export function evidenceScope(sources) {
   };
 }
 
-export function detectGaps({ profile, sources, claims, question }) {
+export function detectGaps({ profile, sources, claims, question, unreviewedSourceIds = [] }) {
   const gaps = [];
+  const unreviewedNote = unreviewedSourceIds.length
+    ? ` ${unreviewedSourceIds.length} added source${unreviewedSourceIds.length === 1 ? ' was' : 's were'} not retrieved, so ${unreviewedSourceIds.length === 1 ? 'it was' : 'they were'} not searched; the information may be there.`
+    : '';
   const reviewedIds = sources.map((s) => s.id);
   const scope = evidenceScope(sources);
 
@@ -67,6 +70,7 @@ export function detectGaps({ profile, sources, claims, question }) {
       whyItMatters: spec.why,
       nextStep: spec.check,
       reviewedSourceIds: reviewedIds,
+      unreviewedSourceIds,
       searchedFor: describePattern(def.pattern),
       scope,
     };
@@ -77,7 +81,7 @@ export function detectGaps({ profile, sources, claims, question }) {
         id: `gap_${spec.key}`,
         kind: 'missing',
         title: `${def.label}: not found in the sources reviewed`,
-        detail: `None of the ${reviewedIds.length} retrieved source${reviewedIds.length === 1 ? '' : 's'} contain wording about ${def.label.toLowerCase()}.`,
+        detail: `None of the ${reviewedIds.length} retrieved source${reviewedIds.length === 1 ? '' : 's'} contain${reviewedIds.length === 1 ? 's' : ''} wording about ${def.label.toLowerCase()}.${unreviewedNote}`,
         evidenceClaimIds: [],
       });
       continue;
@@ -121,10 +125,11 @@ export function detectGaps({ profile, sources, claims, question }) {
       label: 'Question coverage',
       importance: 'important',
       title: `Parts of your question are not mentioned: ${missingTerms.slice(0, 6).join(', ')}`,
-      detail: 'These words from your question do not appear (even in a similar form) in any retrieved source.',
+      detail: `These words from your question do not appear (even in a similar form) in any retrieved source.${unreviewedNote}`,
       whyItMatters: 'The sources may not address the specific situation you asked about.',
       nextStep: `Look for a source that specifically covers: ${missingTerms.slice(0, 6).join(', ')}.`,
       reviewedSourceIds: reviewedIds,
+      unreviewedSourceIds,
       searchedFor: missingTerms.slice(0, 6),
       scope,
       evidenceClaimIds: [],

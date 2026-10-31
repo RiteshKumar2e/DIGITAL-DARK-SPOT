@@ -178,7 +178,11 @@ export function qualityReport({ allSources, reviewed, coverage, gaps, freshness,
       ? 'Based on reserved domains such as .gov.in or .edu. This shows the publisher type, not that the content is current.'
       : 'No reviewed source is on a government or academic domain. The issuing organisation’s own page may not be included.');
 
-  const current = reviewed.filter((s) => s.dateInfo?.best && monthsBetween(toEndDate(s.dateInfo.best.value), now) <= staleMonths).length;
+  const current = reviewed.filter((s) => {
+    if (!s.dateInfo?.best) return false;
+    const months = monthsBetween(toEndDate(s.dateInfo.best.value), now);
+    return months >= -0.1 && months <= staleMonths;
+  }).length;
   const undated = reviewed.filter((s) => !s.dateInfo?.best).length;
   add('current', `Dated within ${staleMonths} months`, `${current} of ${reviewed.length}`, current > 0,
     undated ? `${undated} source(s) declare no publication or update date.` : 'Every reviewed source declares a date.');

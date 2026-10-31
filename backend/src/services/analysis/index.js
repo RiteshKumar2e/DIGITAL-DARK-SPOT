@@ -31,7 +31,7 @@ export async function analyzeSession(session, { now = new Date() } = {}) {
 
   const claims = reviewed.flatMap((s) => extractClaims(s, facetKeys, session.question));
   const scopeText = [session.question, session.context?.situation].filter(Boolean).join(' ');
-  const baseGaps = detectGaps({ profile, sources: reviewed, claims, question: scopeText });
+  const baseGaps = detectGaps({ profile, sources: reviewed, claims, question: scopeText, unreviewedSourceIds: notReviewed.map((s) => s.id) });
   const gaps = [...scopeGaps({ question: session.question, context: session.context, sources: reviewed, scope: evidenceScope(reviewed) }), ...baseGaps];
   const contradictions = [
     ...detectContradictions({ claims, sourcesById, facetKeys }),

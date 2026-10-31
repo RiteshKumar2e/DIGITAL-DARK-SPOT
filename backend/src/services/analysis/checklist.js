@@ -50,10 +50,12 @@ export function buildChecklist({ gaps, contradictions, freshness, sourcesById, p
           ? `Confirm the official document list: ${nameA} mentions ${finding.claimA.value}; ${nameB} mentions ${finding.claimB.value}.`
           : `Resolve ${finding.subject.toLowerCase()}: ${finding.claimA.value} (${nameA}) vs ${finding.claimB.value} (${nameB}).`,
       priority: ['possible_conflict', 'list_difference'].includes(finding.classification) ? 'high' : 'medium',
-      rationale:
-        finding.classification === 'possible_conflict'
-          ? 'Sources state different values with no obvious difference in scope.'
-          : 'Sources state different values; this may be a difference in cycle, unit or category, which still needs confirming.',
+      rationale: {
+        possible_conflict: 'Sources state different values with no obvious difference in scope.',
+        list_difference: 'Sources list different documents; the official list decides which apply.',
+        inconclusive: 'The values are written ambiguously, so it is unclear whether the sources disagree.',
+        not_comparable: 'The values cannot be compared directly (for example, different currencies).',
+      }[finding.classification] || 'Sources state different values; this may be a difference in cycle, unit or category, which still needs confirming.',
       relatedType: 'contradiction',
       relatedId: finding.id,
       topic: finding.subject,

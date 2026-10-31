@@ -21,7 +21,7 @@ export class FetchError extends Error {
 // Custom DNS lookup used for every outgoing connection. Because the socket
 // connects to exactly the address validated here, DNS-rebinding tricks
 // (public IP on check, private IP on connect) are not possible.
-function safeLookup(hostname, options, callback) {
+export function safeLookup(hostname, options, callback) {
   dns.lookup(hostname, { all: true, verbatim: true }, (err, addresses) => {
     if (err) return callback(new FetchError('dns_failed', `Could not resolve ${hostname}.`));
     const blocked = addresses.find((entry) => !isPublicAddress(entry.address));
@@ -121,7 +121,8 @@ function readBody(res, maxBytes) {
  * Retrieves a public web page safely. Every redirect target is re-validated.
  * Resolves to { finalUrl, status, contentType, body, truncated, headers, redirects }.
  */
-export async function fetchPublicPage(inputUrl) {
+// `request` is replaceable in tests so redirect handling can be checked without network access.
+export async function fetchPublicPage(inputUrl, { request = requestOnce } = {}) {
   const { limits } = config;
   const deadline = Date.now() + limits.fetchTimeoutMs;
   let current = inputUrl;
@@ -132,7 +133,7 @@ export async function fetchPublicPage(inputUrl) {
     if (!check.ok) throw new FetchError('blocked_url', hop === 0 ? check.reason : `Redirect blocked: ${check.reason}`);
     const url = check.url;
 
-    const { res } = await requestOnce(url, deadline);
+    const { res } = await request(url, deadline);
     const status = res.statusCode || 0;
 
     if (status >= 300 && status < 400 && res.headers.location) {

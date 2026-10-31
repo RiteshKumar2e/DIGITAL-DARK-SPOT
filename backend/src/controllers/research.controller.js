@@ -56,7 +56,7 @@ export function publicSession(session) {
 function rejectDuplicateContent(session, source) {
   if (source.status !== 'retrieved') return;
   source.contentHash = contentHash(source.text);
-  const twin = session.sources.findIndex((s) => s.contentHash && s.contentHash === source.contentHash);
+  const twin = session.sources.findIndex((s) => s.id !== source.id && s.contentHash && s.contentHash === source.contentHash);
   if (twin !== -1) {
     throw new HttpError(409, `This content is identical to source S${twin + 1}, which is already in the session.`, { code: 'duplicate_source' });
   }
@@ -95,6 +95,7 @@ export async function getSessionHandler(req, res) {
 export async function updateSession(req, res) {
   const session = loadSession(req.params.id);
   const updates = validateUpdateSession(req.body);
+  if (busy.has(session.id)) throw conflict('This session is busy with another operation. Wait for it to finish and try again.');
   if (session.demo && updates.question) throw badRequest('The question of a sample session cannot be changed. Start a new session instead.');
   Object.assign(session, updates);
   if (session.analysis) session.analysisStale = true;
@@ -151,8 +152,20 @@ export async function retrySource(req, res) {
   if (source.kind !== 'url') throw badRequest('Only web page sources can be retried.');
   const release = withLock(session.id);
   try {
+    const before = { ...source };
     await retrieveUrlSource(source);
-    source.contentHash = source.status === 'retrieved' ? contentHash(source.text) : null;
+    source.contentHash = null;
+    try {
+      // A retried page that now matches another source (or redirects to one) is not kept twice.
+      if (source.finalUrl && session.sources.some((s) => s.id !== source.id && (s.finalUrl === source.finalUrl || s.url === source.finalUrl))) {
+        throw new HttpError(409, 'This page now resolves to a source that is already in the session.', { code: 'duplicate_source' });
+      }
+      rejectDuplicateContent(session, source);
+    } catch (error) {
+      Object.keys(source).forEach((key) => delete source[key]);
+      Object.assign(source, before);
+      throw error;
+    }
     if (session.analysis) session.analysisStale = true;
     await saveSession(session);
     res.json({ source: publicSource(source), session: publicSession(session) });
@@ -170,13 +183,18 @@ export async function getSource(req, res) {
 
 export async function removeSource(req, res) {
   const session = loadSession(req.params.id);
-  if (session.demo) throw badRequest('Sample sources cannot be removed. Start your own session instead.');
-  const before = session.sources.length;
-  session.sources = session.sources.filter((s) => s.id !== req.params.sourceId);
-  if (session.sources.length === before) throw notFound('Source not found.');
-  if (session.analysis) session.analysisStale = true;
-  await saveSession(session);
-  res.json({ session: publicSession(session) });
+  const release = withLock(session.id);
+  try {
+    if (session.demo) throw badRequest('Sample sources cannot be removed. Start your own session instead.');
+    const before = session.sources.length;
+    session.sources = session.sources.filter((s) => s.id !== req.params.sourceId);
+    if (session.sources.length === before) throw notFound('Source not found.');
+    if (session.analysis) session.analysisStale = true;
+    await saveSession(session);
+    res.json({ session: publicSession(session) });
+  } finally {
+    release();
+  }
 }
 
 export async function analyze(req, res) {
@@ -187,7 +205,12 @@ export async function analyze(req, res) {
   }
   const release = withLock(session.id);
   try {
-    const { analysis, checklist, sourceDates } = await analyzeSession(session);
+    const { analysis, checklist: built, sourceDates } = await analyzeSession(session);
+    // Checklist changes made while the analysis was running (ticks, own items) are kept.
+    const current = new Map(session.checklist.map((item) => [item.key, item]));
+    const checklist = built.map((item) => (current.has(item.key) ? { ...item, done: current.get(item.key).done, doneAt: current.get(item.key).doneAt } : item));
+    const builtKeys = new Set(checklist.map((item) => item.key));
+    for (const item of session.checklist) if (item.origin === 'user' && !builtKeys.has(item.key)) checklist.push(item);
     analysis.sourceSnapshot = Object.fromEntries(
       session.sources.map((s) => [s.id, { contentHash: s.contentHash || contentHash(s.text || ''), retrievedAt: s.retrievedAt || null, status: s.status }]),
     );
