@@ -57,8 +57,10 @@ export const config = {
     apiKey: process.env.GROQ_API_KEY || '',
     model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
     timeoutMs: 90000,
-    maxSourceCharsPerSource: 6000,
-    maxTotalSourceChars: 45000,
+    // Defaults fit Groq's free tier (8,000 tokens per minute, input and output combined).
+    // Raise them on a paid tier for more source text per review.
+    maxTotalSourceChars: intFromEnv('GROQ_MAX_INPUT_CHARS', 14000),
+    maxOutputTokens: intFromEnv('GROQ_MAX_OUTPUT_TOKENS', 2500),
   },
 };
 

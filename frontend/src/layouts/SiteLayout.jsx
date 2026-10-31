@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Logo } from '../components/Logo.jsx';
+import ContactLinks from '../components/ContactLinks.jsx';
 
 const NAV = [
   { to: '/#how-it-works', label: 'How it works', hash: true },
@@ -93,39 +94,31 @@ export default function SiteLayout() {
 
       <footer className="site-footer">
         <div className="container site-footer-inner">
-          <div className="footer-brand">
+          <Link to="/" className="brand-link footer-logo" aria-label="Digital Dark Spot home">
             <Logo />
-            <p className="small muted">
-              Findings are prompts for verification, not verified facts. Always confirm important details with the issuing
-              organisation.
-            </p>
-          </div>
+          </Link>
           <nav aria-label="Footer">
             <ul className="footer-links">
               <li>
-                <Link to="/">Home</Link>
+                <Link to="/research">Research</Link>
               </li>
               <li>
-                <Link to="/research">Research workspace</Link>
-              </li>
-              <li>
-                <Link to="/#how-it-works">How it works</Link>
-              </li>
-              <li>
-                <Link to="/demo">Sample investigation</Link>
+                <Link to="/demo">Sample</Link>
               </li>
               <li>
                 <Link to="/method">Method</Link>
               </li>
               <li>
-                <Link to="/privacy">Privacy policy</Link>
+                <Link to="/privacy">Privacy</Link>
               </li>
               <li>
-                <Link to="/terms">Terms of use</Link>
+                <Link to="/terms">Terms</Link>
               </li>
             </ul>
           </nav>
+          <ContactLinks />
         </div>
+        <p className="container footer-note small muted">Findings are prompts for verification, not verified facts.</p>
       </footer>
     </>
   );

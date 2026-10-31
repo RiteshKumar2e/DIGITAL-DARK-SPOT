@@ -28,11 +28,13 @@ JSON shape:
 Limit key_points to 8, additional_gaps to 5 (only gaps not already listed), and review only the contradiction ids provided.`;
 
 function buildUserMessage({ question, profileLabel, sources, gaps, contradictions }) {
+  // Share the text budget evenly so every source is represented, then let short
+  // sources hand their unused share to longer ones.
   let budget = config.ai.maxTotalSourceChars;
-  const sourceBlocks = sources.map((s) => {
-    const room = Math.max(800, Math.min(config.ai.maxSourceCharsPerSource, budget));
-    const text = truncate(s.text || '', room);
-    budget -= text.length;
+  const sourceBlocks = sources.map((s, index) => {
+    const fairShare = Math.floor(budget / (sources.length - index));
+    const text = truncate(s.text || '', Math.max(600, fairShare));
+    budget = Math.max(0, budget - text.length);
     const date = s.dateInfo?.best ? `${s.dateInfo.best.value} (${s.dateInfo.best.origin})` : 'unavailable';
     return `<source id="${s.id}" title="${(s.title || '').replace(/"/g, "'")}" origin="${s.domain || s.kind}" date="${date}">\n${text}\n</source>`;
   });
@@ -112,7 +114,7 @@ export async function runAiReview({ question, profileLabel, sources, gaps, contr
     const completion = await getClient().chat.completions.create({
       model: config.ai.model,
       temperature: 0.2,
-      max_completion_tokens: 4000,
+      max_completion_tokens: config.ai.maxOutputTokens,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
@@ -140,11 +142,15 @@ export async function runAiReview({ question, profileLabel, sources, gaps, contr
   } catch (error) {
     let message = 'The AI provider could not be reached. Rule-based findings are shown.';
     if (error instanceof Groq.AuthenticationError) message = 'The AI provider rejected the configured API key.';
-    else if (error instanceof Groq.RateLimitError) message = 'The AI provider is rate limiting requests. Try the analysis again later.';
+    else if (error instanceof Groq.RateLimitError) {
+      message = 'The AI provider’s rate limit was reached (free tiers allow a limited number of tokens per minute). Wait a minute and run the analysis again.';
+    }
     else if (error instanceof Groq.BadRequestError) message = 'The AI provider rejected the request (it may be too large or the model unavailable).';
     else if (error instanceof Groq.APIConnectionTimeoutError) message = 'The AI provider timed out. Rule-based findings are shown.';
     else if (error instanceof Groq.APIError && error.status >= 500) message = 'The AI provider had a server error. Rule-based findings are shown.';
-    console.warn(`[ai] review failed: ${error?.name || 'Error'} ${error?.status || ''}`.trim());
+    // Provider error text helps diagnose quota and size problems; it contains no keys or source content.
+    const detail = String(error?.error?.error?.message || '').slice(0, 200);
+    console.warn(`[ai] review failed: ${error?.name || 'Error'} ${error?.status || ''}${detail ? ` - ${detail}` : ''}`.trim());
     return { status: 'error', message, model: config.ai.model };
   }
 }
