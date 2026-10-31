@@ -14,7 +14,7 @@ Built for the **Shinchan Online Hackathon 2026** · Problem statement: *Digital 
 ![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express)
-![Tests](https://img.shields.io/badge/backend%20tests-27%20passing-2e6a43)
+![Tests](https://img.shields.io/badge/backend%20tests-40%20passing-2e6a43)
 
 </div>
 
@@ -75,8 +75,8 @@ Digital Dark Spot turns a research question and a set of sources into an inspect
 | **Four ways to add sources** | Web page URL (HTML, plain text or PDF links), **PDF upload** with page-by-page extraction, pasted text, and **web search** (Tavily or Serper) when configured. Up to 10 sources per session. |
 | **Source manager** | Title, link or file name, retrieval status and timestamp, declared dates, word and page count, official-domain signal with its basis, retry, removal, and a flag when content changed since the last analysis. |
 | **Potential gap detection** | Topics the research type needs that no reviewed source covers, values mentioned without specifics, critical topics backed by one source, a year or place in your scope that no source mentions, and parts of your question that go unaddressed. |
-| **Contradiction analysis** | Deadlines, amounts, fees, age and income limits, marks and required-document lists compared across sources. Classified as possible contradiction, document lists differ, different cycle, different scope or different units. |
-| **Freshness and timeline** | Profile-specific thresholds (12 months for scholarships, jobs and public services; 24 for general; 60 for academic). Passed deadlines are flagged, undated sources are reported as "publication date not established", and a timeline marks today's date. |
+| **Contradiction analysis** | Deadlines, amounts, fees, age and income limits, marks and required-document lists compared across sources. Classified as possible contradiction, document lists differ, different cycle, different scope, different units, **inconclusive** (for example an ambiguous date such as 05/06/2026) or **not directly comparable** (for example different currencies). |
+| **Freshness and timeline** | Profile-specific thresholds (12 months for scholarships, jobs and public services; 24 for general; 60 for academic). These are warning rules, not proof of error. Passed deadlines and implausible future dates are flagged, undated sources are reported as "publication date not established", and a timeline marks today's date. |
 | **Evidence inspector** | Every citation opens the full retrieved text with the passage highlighted, with page numbers for PDFs and a link to the live page. |
 | **Research coverage matrix** | Topics against sources with a status per topic (covered, one source only, not found, conflicting, differs by cycle or scope). Every cell opens its evidence. |
 | **Investigation quality report** | An explained factor list (sources reviewed, independent publishers, topics covered, critical gaps, single-source topics, official-domain sources, recent dates). Deliberately no single score. |
@@ -122,10 +122,10 @@ flowchart LR
 
 | Stage | Code | Details |
 | --- | --- | --- |
-| Retrieval | `backend/src/services/fetcher.service.js`, `pdf.service.js` | DNS-pinned connections, every redirect re-validated, 12 s timeout, 3 MB HTML / 10 MB PDF limits, content-type checks. PDFs: magic-byte check, 200-page limit, 20 s timeout, no OCR. |
+| Retrieval | `backend/src/services/fetcher.service.js`, `pdf.service.js` | DNS-pinned connections, every redirect re-validated, 12 s timeout, 3 MB HTML / 10 MB PDF limits, content-type checks. Cookie walls, JavaScript notices and bot checks are reported as not retrieved. PDFs: magic-byte check, 200-page limit, 20 s timeout, no OCR. |
 | Extraction | `analysis/claims.js` | Sentences tagged by topic; dates, money (including lakh and crore), ages and percentages parsed; PDF page numbers attached. Text is never paraphrased. |
 | Gaps | `analysis/gaps.js`, `analysis/insights.js` | Profile topics with importance and verification steps; scope checks for years and places; question-coverage check that ignores generic words. |
-| Contradictions | `analysis/contradictions.js` | Compared only when each sentence states one explicit value. Cycle, unit and category differences are classified separately. Document lists are compared by document type. |
+| Contradictions | `analysis/contradictions.js` | Compared only when each sentence states one explicit value. Cycle, unit and category differences are classified separately; ambiguous dates are inconclusive and different currencies are not comparable. Document lists are compared by document type. |
 | Freshness | `analysis/freshness.js` | Declared dates only; profile thresholds; passed deadlines; inferred years kept separate from publication dates. |
 | Insights | `analysis/insights.js` | Coverage matrix statuses, timeline, investigation-quality factors. |
 | Checklist | `analysis/checklist.js` | Prioritised tasks with a destination (official-domain source in the session, or a suggested search); completion survives re-analysis. |
@@ -218,7 +218,7 @@ npm run dev
 
 On start, the backend prints whether AI review and web search are enabled. Open http://localhost:5173.
 
-**Production:** `cd backend && npm install --omit=dev && npm start`, and `cd frontend && npm run build` (static files in `frontend/dist`, served with an SPA fallback to `index.html`). Configure HTTPS at the hosting platform or reverse proxy. Set `NODE_ENV=production`, `FRONTEND_ORIGIN`, `TRUST_PROXY` (backend) and `VITE_API_BASE_URL`, `VITE_SITE_URL` (frontend, before building).
+**Production:** `cd backend && npm install --omit=dev && npm start`, and `cd frontend && npm run build` (static files in `frontend/dist`). No deployment configuration is included because no hosting platform has been chosen. Whichever static host you use must rewrite unknown paths to `index.html` (SPA fallback), otherwise `/research/...` links return 404 on reload. Configure HTTPS at the hosting platform or reverse proxy. Set `NODE_ENV=production`, `FRONTEND_ORIGIN`, `TRUST_PROXY` (backend) and `VITE_API_BASE_URL`, `VITE_SITE_URL` (frontend, before building). The frontend build prints a warning if `VITE_API_BASE_URL` still points to localhost. The JSON data file must live on persistent disk; hosts with ephemeral filesystems lose sessions on restart.
 
 ## Configuration
 
@@ -281,7 +281,8 @@ Base URL `http://localhost:4000/api`. Errors use `{ "error": { "code", "message"
 - **SSRF protection:** http/https on ports 80 and 443 only, no embedded credentials, local hostnames and numeric IP spellings blocked. Connections are pinned to DNS results checked against private, loopback, link-local (including `169.254.169.254`), CGNAT, reserved and multicast ranges for IPv4 and IPv6 (including mapped and NAT64 forms). Every redirect is re-validated. Search results pass the same URL checks.
 - **Untrusted content:** response-size and time limits, decompression capped by the same byte limit, PDF magic-byte, page and time limits. Page text is rendered as text only. Report HTML is fully escaped and served with a restrictive CSP. Source text sent to the AI is delimited and marked as data, not instructions.
 - **API hardening:** Helmet headers with `default-src 'none'`, CORS allow-list, 200 KB JSON limit, per-route rate limits (sessions, sources, search, analysis), `Cache-Control: no-store`, centralised errors without stack traces, server-side validation on every route, and a honeypot on session creation.
-- **Persistence:** atomic writes (temp file and rename), serialised; an unreadable data file is preserved as `.corrupt-<timestamp>` rather than overwritten.
+- **Persistence:** atomic writes (temp file and rename), serialised; a failed write is reported to the user (HTTP 503) instead of being ignored, and the previous file stays intact; an unreadable data file is preserved as `.corrupt-<timestamp>` rather than overwritten.
+- **Concurrency:** adding, retrying or removing sources and running an analysis are mutually exclusive per session (HTTP 409 while busy); checklist ticks made during an analysis are kept.
 - **Access model:** there are no accounts. A session is accessible to anyone with its unguessable 128-bit link. Research pages are `noindex` and excluded from `robots.txt`.
 
 ## Privacy
@@ -306,17 +307,17 @@ CHROME_PATH="C:/Program Files/Google/Chrome/Application/chrome.exe" npm run test
 
 | Check | Result |
 | --- | --- |
-| `npm test` (backend) | 27 passed, 0 failed |
-| `npm run eval` | 10 cases · expected findings detected 11/11 · forbidden findings produced 0/9 · invalid evidence references 0 |
+| `npm test` (backend) | 40 passed, 0 failed |
+| `npm run eval` | 17 cases · expected findings detected 18/18 · forbidden findings produced 0/17 · invalid evidence references 0 |
 | `npm run build` (frontend) | Succeeds |
-| `npm run test:e2e` | Full journey passes. No horizontal overflow at 320, 375, 390, 768, 1024 and 1440 px; no console errors. |
+| `npm run test:e2e` | Full journey passes, including a live Tavily search when a key is configured. No horizontal overflow at 320, 375, 390, 768, 1024 and 1440 px; no console errors. |
 | `npm audit` (both apps) | 0 vulnerabilities |
 
-The tests cover the health endpoint, input validation and field errors, oversized bodies, unsafe URL rejection, duplicate content, short text, PDF upload with page numbers, non-PDF and scanned-PDF handling, the analysis workflow, checklist updates, Markdown and HTML export (including XSS escaping), session deletion, search not configured, the read-only sample, JSON 404s, corrupted-store recovery, AI output validation (malformed output, invented quotes, unknown sources), prompt-injection-like source text, and rate limiting.
+The tests cover the health endpoint, input validation and field errors, oversized bodies, unsafe URL rejection, duplicate content, short text, PDF upload with page numbers, non-PDF and scanned-PDF handling, the analysis workflow, checklist updates, Markdown and HTML export (including XSS escaping), session deletion, search not configured, the read-only sample, JSON 404s, corrupted-store recovery, AI output validation (malformed output, invented quotes, unknown sources), prompt-injection-like source text, rate limiting, redirect hops to private and metadata addresses (with a fake transport), redirect loops, HTTP error mapping, oversized and empty responses, DNS checks at connection time, cookie-wall detection, storage write failures, concurrent writes, repeated analysis and verbatim evidence references.
 
-The evaluation fixtures (`backend/test/fixtures/eval-cases.js`) are fixed texts covering conflicting deadlines, different application years, missing renewal conditions, conflicting document lists, an official source next to an older secondary source, an undated page, an inaccessible URL, a question with no relevant coverage, consistent sources (no false conflict) and a question year not covered. **These measure rule behaviour on a small curated set; they are not an accuracy figure for real-world pages.**
+The evaluation fixtures (`backend/test/fixtures/eval-cases.js`) are fixed texts covering conflicting deadlines, different application years, missing renewal conditions, conflicting document lists, an official source next to an older secondary source, an undated page, an inaccessible URL, a question with no relevant coverage, consistent sources (no false conflict), a question year not covered, different currencies, an ambiguous numeric date, different applicant categories, alternative wording, a future publication date, a failed source and insufficient evidence. **These measure rule behaviour on a small curated set; they are not an accuracy figure for real-world pages.**
 
-Not covered by automated tests: live web retrieval (it depends on external sites), live Groq and search-provider calls (verified manually when keys are available), and redirect-to-private-address handling against a real redirecting server (the per-hop validation is shared with the tested URL checks).
+Not covered by automated unit tests: live web retrieval and live Groq and search-provider calls, which depend on external services. Live Tavily search and Groq review were exercised manually and in the browser check with keys configured; Serper has not been tested against the live service.
 
 ## Known limitations
 
@@ -335,5 +336,5 @@ Hindi and regional-language extraction, OCR for scanned PDFs, issuer detection b
 ---
 
 <div align="center">
-<sub>Digital Dark Spot · Shinchan Online Hackathon 2026 · Not affiliated with the Crayon Shin-chan franchise.</sub>
+<sub>Digital Dark Spot · Shinchan Online Hackathon 2026</sub>
 </div>

@@ -125,7 +125,6 @@ export default function SiteLayout() {
               </li>
             </ul>
           </nav>
-          <p className="small muted footer-note">Built for the Shinchan Online Hackathon 2026. Not affiliated with the Crayon Shin-chan franchise.</p>
         </div>
       </footer>
     </>
