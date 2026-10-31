@@ -14,7 +14,7 @@ Built for the **Shinchan Online Hackathon 2026** · Problem statement: *Digital 
 ![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express)
-![Tests](https://img.shields.io/badge/backend%20tests-40%20passing-2e6a43)
+![Tests](https://img.shields.io/badge/backend%20tests-45%20passing-2e6a43)
 
 </div>
 
@@ -283,6 +283,7 @@ Base URL `http://localhost:4000/api`. Errors use `{ "error": { "code", "message"
 - **API hardening:** Helmet headers with `default-src 'none'`, CORS allow-list, 200 KB JSON limit, per-route rate limits (sessions, sources, search, analysis), `Cache-Control: no-store`, centralised errors without stack traces, server-side validation on every route, and a honeypot on session creation.
 - **Persistence:** atomic writes (temp file and rename), serialised; a failed write is reported to the user (HTTP 503) instead of being ignored, and the previous file stays intact; an unreadable data file is preserved as `.corrupt-<timestamp>` rather than overwritten.
 - **Concurrency:** adding, retrying or removing sources and running an analysis are mutually exclusive per session (HTTP 409 while busy); checklist ticks made during an analysis are kept.
+- **Logs:** session ids work as access keys, so they are redacted from server error logs; research text is never logged.
 - **Access model:** there are no accounts. A session is accessible to anyone with its unguessable 128-bit link. Research pages are `noindex` and excluded from `robots.txt`.
 
 ## Privacy
@@ -307,13 +308,13 @@ CHROME_PATH="C:/Program Files/Google/Chrome/Application/chrome.exe" npm run test
 
 | Check | Result |
 | --- | --- |
-| `npm test` (backend) | 40 passed, 0 failed |
+| `npm test` (backend) | 45 passed, 0 failed |
 | `npm run eval` | 17 cases · expected findings detected 18/18 · forbidden findings produced 0/17 · invalid evidence references 0 |
 | `npm run build` (frontend) | Succeeds |
-| `npm run test:e2e` | Full journey passes, including a live Tavily search when a key is configured. No horizontal overflow at 320, 375, 390, 768, 1024 and 1440 px; no console errors. |
+| `npm run test:e2e` | Full journey passes, including a live Tavily search when a key is configured, and deletes the sessions it created. No horizontal overflow at 320, 375, 390, 768, 1024 and 1440 px; no console errors. |
 | `npm audit` (both apps) | 0 vulnerabilities |
 
-The tests cover the health endpoint, input validation and field errors, oversized bodies, unsafe URL rejection, duplicate content, short text, PDF upload with page numbers, non-PDF and scanned-PDF handling, the analysis workflow, checklist updates, Markdown and HTML export (including XSS escaping), session deletion, search not configured, the read-only sample, JSON 404s, corrupted-store recovery, AI output validation (malformed output, invented quotes, unknown sources), prompt-injection-like source text, rate limiting, redirect hops to private and metadata addresses (with a fake transport), redirect loops, HTTP error mapping, oversized and empty responses, DNS checks at connection time, cookie-wall detection, storage write failures, concurrent writes, repeated analysis and verbatim evidence references.
+The tests cover the health endpoint, input validation and field errors, oversized bodies, unsafe URL rejection, duplicate content, short text, PDF upload with page numbers, non-PDF and scanned-PDF handling, the analysis workflow, checklist updates, Markdown and HTML export (including XSS escaping), session deletion, search not configured, the read-only sample, JSON 404s, corrupted-store recovery, AI output validation (malformed output, invented quotes, unknown sources), prompt-injection-like source text, rate limiting, redirect hops to private and metadata addresses (with a fake transport), redirect loops, HTTP error mapping, oversized and empty responses, DNS checks at connection time, cookie-wall detection, storage write failures, concurrent writes, repeated analysis, verbatim evidence references, damaged, truncated and over-limit PDFs, retention purge, and session ids being kept out of logs. Tests that write data run against a temporary file and refuse to start if they would touch the real data store.
 
 The evaluation fixtures (`backend/test/fixtures/eval-cases.js`) are fixed texts covering conflicting deadlines, different application years, missing renewal conditions, conflicting document lists, an official source next to an older secondary source, an undated page, an inaccessible URL, a question with no relevant coverage, consistent sources (no false conflict), a question year not covered, different currencies, an ambiguous numeric date, different applicant categories, alternative wording, a future publication date, a failed source and insufficient evidence. **These measure rule behaviour on a small curated set; they are not an accuracy figure for real-world pages.**
 
