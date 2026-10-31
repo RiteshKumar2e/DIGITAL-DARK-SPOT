@@ -3,9 +3,10 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Logo } from '../components/Logo.jsx';
 
 const NAV = [
-  { to: '/', label: 'New research', end: true },
-  { to: '/method', label: 'How it works' },
-  { to: '/privacy', label: 'Privacy' },
+  { to: '/#how-it-works', label: 'How it works', hash: true },
+  { to: '/#capabilities', label: 'Capabilities', hash: true },
+  { to: '/method', label: 'Method' },
+  { to: '/research', label: 'Research workspace', end: true },
 ];
 
 export default function SiteLayout() {
@@ -14,12 +15,21 @@ export default function SiteLayout() {
   const toggleRef = useRef(null);
   const mainRef = useRef(null);
 
-  // Close the mobile menu and move focus to the page content on navigation.
+  // Close the mobile menu on navigation; scroll to an in-page section when the
+  // link has a hash, otherwise move to the top and focus the new page.
   useEffect(() => {
     setMenuOpen(false);
+    if (location.hash) {
+      const target = document.getElementById(location.hash.slice(1));
+      if (target) {
+        target.scrollIntoView({ block: 'start' });
+        target.focus({ preventScroll: true });
+        return;
+      }
+    }
     window.scrollTo(0, 0);
     mainRef.current?.focus({ preventScroll: true });
-  }, [location.pathname]);
+  }, [location.pathname, location.hash, location.key]);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -58,11 +68,20 @@ export default function SiteLayout() {
             <ul>
               {NAV.map((item) => (
                 <li key={item.to}>
-                  <NavLink to={item.to} end={item.end}>
-                    {item.label}
-                  </NavLink>
+                  {item.hash ? (
+                    <Link to={item.to}>{item.label}</Link>
+                  ) : (
+                    <NavLink to={item.to} end={item.end}>
+                      {item.label}
+                    </NavLink>
+                  )}
                 </li>
               ))}
+              <li className="nav-cta">
+                <Link to="/research" className="btn btn-primary btn-sm">
+                  Start Research
+                </Link>
+              </li>
             </ul>
           </nav>
         </div>
@@ -84,7 +103,16 @@ export default function SiteLayout() {
           <nav aria-label="Footer">
             <ul className="footer-links">
               <li>
-                <Link to="/method">How it works</Link>
+                <Link to="/">Home</Link>
+              </li>
+              <li>
+                <Link to="/research">Research workspace</Link>
+              </li>
+              <li>
+                <Link to="/#how-it-works">How it works</Link>
+              </li>
+              <li>
+                <Link to="/method">Method</Link>
               </li>
               <li>
                 <Link to="/privacy">Privacy policy</Link>

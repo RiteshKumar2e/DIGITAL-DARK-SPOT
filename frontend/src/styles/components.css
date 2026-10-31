@@ -359,6 +359,7 @@
 }
 
 .quote-text {
+  margin: 0;
   font-family: var(--font-display);
   font-size: var(--text-md);
   line-height: 1.5;
@@ -468,6 +469,7 @@
 
 /* ---------- Tabs ---------- */
 .tabs {
+  position: relative; /* contains absolutely positioned screen-reader text */
   display: flex;
   gap: var(--s-1);
   overflow-x: auto;
@@ -517,6 +519,7 @@
 
 /* ---------- Table ---------- */
 .table-wrap {
+  position: relative;
   max-width: 100%;
   overflow-x: auto;
   border: 1px solid var(--line);

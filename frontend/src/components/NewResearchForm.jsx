@@ -8,10 +8,10 @@ import { Alert, FieldError } from './ui.jsx';
 const MIN = 10;
 const MAX = 500;
 
-export default function NewResearchForm() {
+export default function NewResearchForm({ initialQuestion = '' }) {
   const navigate = useNavigate();
   const ids = { q: useId(), qHelp: useId(), qErr: useId(), profile: useId(), hp: useId() };
-  const [question, setQuestion] = useState('');
+  const [question, setQuestion] = useState(initialQuestion);
   const [profile, setProfile] = useState('auto');
   const [website, setWebsite] = useState('');
   const [fieldError, setFieldError] = useState('');

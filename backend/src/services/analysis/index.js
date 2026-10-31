@@ -1,7 +1,7 @@
 import { FACETS, PROFILES, detectProfile } from './profiles.js';
 import { extractClaims } from './claims.js';
 import { detectGaps, evidenceScope } from './gaps.js';
-import { detectContradictions } from './contradictions.js';
+import { detectContradictions, detectDocumentDifferences } from './contradictions.js';
 import { detectFreshness, sourceDateInfo } from './freshness.js';
 import { buildChecklist } from './checklist.js';
 import { runAiReview } from '../ai.service.js';
@@ -37,7 +37,10 @@ export async function analyzeSession(session, { now = new Date() } = {}) {
 
   const claims = reviewed.flatMap((s) => extractClaims(s, facetKeys, session.question));
   const gaps = detectGaps({ profile, sources: reviewed, claims, question: session.question });
-  const contradictions = detectContradictions({ claims, sourcesById, facetKeys });
+  const contradictions = [
+    ...detectContradictions({ claims, sourcesById, facetKeys }),
+    ...detectDocumentDifferences({ claims, sourcesById, facetKeys }),
+  ];
   const freshness = detectFreshness({ sources: reviewed, claims, now });
 
   const ai = await runAiReview({

@@ -149,3 +149,69 @@ export function detectContradictions({ claims, sourcesById, facetKeys }) {
   const order = { possible_conflict: 0, scope_difference: 1, unit_difference: 2, different_cycle: 3 };
   return findings.sort((x, y) => order[x.classification] - order[y.classification]);
 }
+
+// Document types recognised when comparing required-document lists.
+const DOCUMENT_TYPES = [
+  ['income certificate', /\bincome certificate\b/i],
+  ['income tax return (ITR)', /\b(income tax returns?|itr)\b/i],
+  ['salary slips', /\bsalary slips?\b/i],
+  ['mark sheet / transcript', /\b(mark ?sheets?|transcripts?|grade cards?)\b/i],
+  ['admission letter', /\b(admission letter|offer letter|proof of admission)\b/i],
+  ['fee receipt', /\bfee receipts?\b/i],
+  ['bonafide certificate', /\bbona ?fide certificate\b/i],
+  ['Aadhaar card', /\baadhaa?r\b/i],
+  ['passport', /\bpassport(?![- ]size)\b/i],
+  ['photograph', /\b(photograph|passport[- ]size photo)\b/i],
+  ['caste / category certificate', /\b(caste|category|community) certificate\b/i],
+  ['domicile certificate', /\b(domicile|residence) certificate\b/i],
+  ['bank account details', /\b(bank (?:account )?details|bank passbook|cancelled cheque)\b/i],
+  ['recommendation letter', /\b(recommendation letters?|letters? of recommendation|reference letters?)\b/i],
+  ['disability certificate', /\bdisability certificate\b/i],
+];
+
+/**
+ * Compares the documents each source asks for. Reported only when two sources
+ * both describe required documents and each names something the other omits,
+ * which is a difference worth checking rather than a proven contradiction.
+ */
+export function detectDocumentDifferences({ claims, sourcesById, facetKeys }) {
+  if (!facetKeys.includes('documents')) return [];
+  const bySource = new Map();
+  for (const claim of claims) {
+    if (!claim.facets.includes('documents')) continue;
+    const found = DOCUMENT_TYPES.filter(([, re]) => re.test(claim.text)).map(([name]) => name);
+    if (!found.length) continue;
+    const entry = bySource.get(claim.sourceId) || { docs: new Map() };
+    for (const doc of found) if (!entry.docs.has(doc)) entry.docs.set(doc, claim);
+    bySource.set(claim.sourceId, entry);
+  }
+  const ids = [...bySource.keys()];
+  const findings = [];
+  for (let i = 0; i < ids.length; i += 1) {
+    for (let j = i + 1; j < ids.length; j += 1) {
+      const a = bySource.get(ids[i]);
+      const b = bySource.get(ids[j]);
+      const onlyA = [...a.docs.keys()].filter((d) => !b.docs.has(d));
+      const onlyB = [...b.docs.keys()].filter((d) => !a.docs.has(d));
+      if (!onlyA.length || !onlyB.length) continue;
+      const claimA = a.docs.get(onlyA[0]);
+      const claimB = b.docs.get(onlyB[0]);
+      findings.push({
+        id: `con_documents_${findings.length + 1}`,
+        facet: 'documents',
+        subject: 'Required documents',
+        classification: 'list_difference',
+        claimA: { claimId: claimA.id, sourceId: ids[i], text: claimA.text, value: onlyA.join(', '), sourceDate: sourcesById[ids[i]]?.dateInfo?.best || null },
+        claimB: { claimId: claimB.id, sourceId: ids[j], text: claimB.text, value: onlyB.join(', '), sourceDate: sourcesById[ids[j]]?.dateInfo?.best || null },
+        explanation: `The sources list different documents. Only one mentions ${onlyA.join(', ')}; only the other mentions ${onlyB.join(', ')}.`,
+        possibleReasons: [
+          'One source may give a partial list or a summary.',
+          'The requirement may have changed between application cycles.',
+          'Different documents may be accepted as alternatives (for example, different forms of income proof).',
+        ],
+        recommendation: 'Get the complete, current document list from the official notice or application portal.',
+      });
+    }
+  }
+  return findings.slice(0, 4);
+}

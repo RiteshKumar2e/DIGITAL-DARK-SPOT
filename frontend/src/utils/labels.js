@@ -28,6 +28,7 @@ export const GAP_KIND = {
 
 export const CONTRADICTION_CLASS = {
   possible_conflict: { label: 'Possible contradiction', tone: 'high' },
+  list_difference: { label: 'Document lists differ', tone: 'high' },
   scope_difference: { label: 'May differ in scope', tone: 'medium' },
   unit_difference: { label: 'May use different units', tone: 'medium' },
   different_cycle: { label: 'May be a different cycle', tone: 'low' },

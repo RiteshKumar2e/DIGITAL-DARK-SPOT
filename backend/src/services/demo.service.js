@@ -36,7 +36,7 @@ Students who have just joined a full-time undergraduate course can apply.
 The scholarship amount is ₹50,000 per year for selected students.
 The deadline to apply is 15 December ${y}, so make sure you apply early.
 Selection is merit based and shortlisted students are interviewed.
-You will need your mark sheet and income certificate to apply.
+For income proof, upload your parents' salary slips or the latest income tax return (ITR), along with your mark sheet.
 Many students also ask about coaching support, but the Trust has not shared details on this.`,
     },
     {
@@ -58,4 +58,4 @@ Answer: Selected students get an email from the help desk and have to send their
 }
 
 export const DEMO_QUESTION =
-  'Am I eligible for the Sunrise Merit Scholarship, what is the current deadline, and can the scholarship be renewed for second-year students?';
+  'What should I verify before applying for the Sunrise Merit Scholarship, including eligibility, the current deadline, documents and whether it can be renewed?';

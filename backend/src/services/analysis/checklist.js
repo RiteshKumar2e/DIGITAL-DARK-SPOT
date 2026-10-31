@@ -37,8 +37,11 @@ export function buildChecklist({ gaps, contradictions, freshness, sourcesById, p
     const nameA = sourcesById[finding.claimA.sourceId]?.domain || 'source A';
     const nameB = sourcesById[finding.claimB.sourceId]?.domain || 'source B';
     add({
-      text: `Resolve ${finding.subject.toLowerCase()}: ${finding.claimA.value} (${nameA}) vs ${finding.claimB.value} (${nameB}).`,
-      priority: finding.classification === 'possible_conflict' ? 'high' : 'medium',
+      text:
+        finding.classification === 'list_difference'
+          ? `Confirm the official document list: ${nameA} mentions ${finding.claimA.value}; ${nameB} mentions ${finding.claimB.value}.`
+          : `Resolve ${finding.subject.toLowerCase()}: ${finding.claimA.value} (${nameA}) vs ${finding.claimB.value} (${nameB}).`,
+      priority: ['possible_conflict', 'list_difference'].includes(finding.classification) ? 'high' : 'medium',
       rationale:
         finding.classification === 'possible_conflict'
           ? 'Sources state different values with no obvious difference in scope.'

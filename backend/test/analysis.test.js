@@ -70,6 +70,8 @@ test('demo analysis finds the planted gap, conflicts and stale signals', async (
   const income = analysis.contradictions.find((c) => c.facet === 'income');
   assert.equal(income?.classification, 'different_cycle', 'income difference explained by cycle');
 
+  const docs = analysis.contradictions.find((c) => c.classification === 'list_difference');
+  assert.ok(docs && docs.claimB.value.includes('salary slips'), 'document lists differ');
   assert.ok(analysis.freshness.some((f) => f.kind === 'stale'), 'stale blog');
   assert.ok(analysis.freshness.some((f) => f.kind === 'past_deadline'), 'past deadline in forum');
   assert.ok(analysis.freshness.some((f) => f.sourceId === 'src_2' && (f.kind === 'old_years' || f.kind === 'undated')), 'undated forum');

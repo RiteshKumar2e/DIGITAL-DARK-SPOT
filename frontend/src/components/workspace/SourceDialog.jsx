@@ -65,7 +65,7 @@ export default function SourceDialog({ sessionId, target, label, onClose }) {
     return () => controller.abort();
   }, [sessionId, target]);
 
-  const source = state.source;
+  const source = target ? state.source : null;
   const href = source ? safeHref(source.finalUrl || source.url) : null;
 
   return (
@@ -133,14 +133,14 @@ export default function SourceDialog({ sessionId, target, label, onClose }) {
                   </dd>
                 </div>
               </dl>
-              {target.highlight && (
+              {target?.highlight && (
                 <p className="small">
                   <Tag tone="source">Source text</Tag> The cited passage is highlighted below.
                   {source.text && !source.text.includes(target.highlight) && ' (It could not be located exactly in the stored text.)'}
                 </p>
               )}
               {source.text ? (
-                <SourceText text={source.text} highlight={target.highlight} />
+                <SourceText text={source.text} highlight={target?.highlight} />
               ) : (
                 <p className="muted">No text was retrieved from this source.</p>
               )}

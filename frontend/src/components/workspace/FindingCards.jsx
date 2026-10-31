@@ -130,15 +130,17 @@ export function ContradictionList({ items, aiReviews }) {
               <Tag plain>{item.subject}</Tag>
             </div>
             <h3 className="finding-title">
-              {item.subject}: {item.claimA.value} or {item.claimB.value}?
+              {item.classification === 'list_difference'
+                ? 'Sources list different required documents'
+                : `${item.subject}: ${item.claimA.value} or ${item.claimB.value}?`}
             </h3>
             <p>{item.explanation}</p>
             <div className="versus">
-              <Quote text={item.claimA.text} sourceId={item.claimA.sourceId} value={item.claimA.value} date={item.claimA.sourceDate} />
+              <Quote text={item.claimA.text} sourceId={item.claimA.sourceId} value={item.classification === 'list_difference' ? null : item.claimA.value} date={item.claimA.sourceDate} />
               <span className="versus-mark" aria-hidden="true">
                 vs
               </span>
-              <Quote text={item.claimB.text} sourceId={item.claimB.sourceId} value={item.claimB.value} date={item.claimB.sourceDate} />
+              <Quote text={item.claimB.text} sourceId={item.claimB.sourceId} value={item.classification === 'list_difference' ? null : item.claimB.value} date={item.claimB.sourceDate} />
             </div>
             <dl className="finding-facts">
               <div>
