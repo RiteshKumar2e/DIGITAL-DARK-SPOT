@@ -15,7 +15,7 @@ function clientUrlCheck(value) {
   return '';
 }
 
-export default function AddSourceForm({ sessionId, onAdded, disabled, remaining }) {
+export default function AddSourceForm({ sessionId, onAdded, disabled, remaining, autoFocus = false }) {
   const [mode, setMode] = useState('url');
   const [url, setUrl] = useState('');
   const [paste, setPaste] = useState({ title: '', text: '', originUrl: '' });
@@ -93,6 +93,7 @@ export default function AddSourceForm({ sessionId, onAdded, disabled, remaining 
           <input
             ref={urlRef}
             id={ids.url}
+            autoFocus={autoFocus}
             className="input"
             type="url"
             inputMode="url"

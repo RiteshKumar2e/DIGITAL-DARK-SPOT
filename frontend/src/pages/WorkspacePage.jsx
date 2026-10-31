@@ -240,7 +240,7 @@ export default function WorkspacePage() {
             </div>
             {!session.demo && (
               remaining > 0 ? (
-                <AddSourceForm sessionId={session.id} onAdded={setSession} disabled={analyzing} remaining={remaining} />
+                <AddSourceForm sessionId={session.id} onAdded={setSession} disabled={analyzing} remaining={remaining} autoFocus={session.sources.length === 0} />
               ) : (
                 <Alert tone="info">This session has the maximum of {session.limits.maxSources} sources. Remove one to add another.</Alert>
               )
@@ -269,10 +269,22 @@ export default function WorkspacePage() {
                 </>
               ) : (
                 !analyzing && (
-                  <EmptyState title="No findings yet">
-                    {session.sources.length === 0
-                      ? 'Add sources on the left, then run the analysis. You will see potential gaps, possible contradictions, freshness warnings and a verification checklist.'
-                      : 'Run the analysis to review your sources for missing, conflicting and outdated information.'}
+                  <EmptyState title={session.sources.length === 0 ? 'Add a source to get started' : 'Ready to analyse'}>
+                    {session.sources.length === 0 ? (
+                      <ol className="start-steps">
+                        <li>
+                          Paste a page address into <strong>Page address</strong> under Sources (on the left, or above on small
+                          screens) and press <strong>Add source</strong>.
+                        </li>
+                        <li>Add more pages if you have them. Two or more let the analysis compare sources.</li>
+                        <li>
+                          Press <strong>Run analysis</strong> to see potential gaps, conflicts, freshness warnings and your
+                          checklist.
+                        </li>
+                      </ol>
+                    ) : (
+                      'Press Run analysis to review your sources for missing, conflicting and outdated information.'
+                    )}
                   </EmptyState>
                 )
               )}

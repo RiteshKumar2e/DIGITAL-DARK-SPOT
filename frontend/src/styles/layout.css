@@ -1369,3 +1369,10 @@
     grid-template-columns: minmax(19rem, 23rem) minmax(0, 1fr);
   }
 }
+
+.start-steps {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding-left: 1.2rem;
+}

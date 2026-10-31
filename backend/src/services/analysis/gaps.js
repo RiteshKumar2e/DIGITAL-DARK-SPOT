@@ -43,9 +43,11 @@ export function evidenceScope(sources) {
     sourceCount: sources.length,
     wordCount: words,
     note:
-      level === 'limited'
+      words < 400
         ? 'Based on very little retrieved text. Treat this as a prompt to look further, not as a conclusion.'
-        : 'Keyword scan of the retrieved text. Information phrased differently may have been missed.',
+        : sources.length <= 1
+          ? 'Only one source was reviewed, so nothing could be cross-checked. Add more sources to compare them.'
+          : 'Keyword scan of the retrieved text. Information phrased differently may have been missed.',
   };
 }
 
