@@ -94,7 +94,22 @@ await page.getByRole('button', { name: 'Start a research session' }).click();
 await page.waitForURL(/research\/.+/);
 log('scope line:', await page.locator('.scope-line').innerText());
 await page.getByText('Search', { exact: true }).click();
-log('search state:', (await page.locator('.add-source .alert').first().innerText()).split('\n')[0]);
+const searchConfigured = (await (await page.request.get(page.url().replace(/:\d+\/.*/, ':4000/api/health'))).json()).search?.configured;
+if (searchConfigured) {
+  // Live provider: run a real search and add one result as a source.
+  await page.getByLabel('Search the web').fill('Fulbright-Nehru Master fellowship eligibility');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.locator('.search-results li, .add-source .alert-error').first().waitFor({ timeout: 30000 });
+  const results = await page.locator('.search-results li').count();
+  log('search results:', results, '| snippets labelled:', await page.locator('.search-results .tag', { hasText: 'Search snippet' }).count());
+  if (results) {
+    await page.locator('.search-results li').first().getByRole('button', { name: 'Add as source' }).click();
+    await page.locator('.add-source .alert').first().waitFor({ timeout: 30000 });
+    log('search result added:', await page.locator('.add-source .alert').first().innerText());
+  }
+} else {
+  log('search state:', (await page.locator('.add-source .alert').first().innerText()).split('\n')[0]);
+}
 await page.getByText('Upload PDF', { exact: true }).click();
 await page.getByLabel('PDF document').setInputFiles(PDF);
 await page.getByRole('button', { name: 'Upload PDF' }).click();
