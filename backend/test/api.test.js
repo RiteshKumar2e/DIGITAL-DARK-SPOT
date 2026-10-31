@@ -230,3 +230,35 @@ test('unknown ids and routes return JSON 404s', async () => {
   assert.equal(missing.status, 404);
   assert.equal(missing.json.error.code, 'not_found');
 });
+
+test('repeated analysis is stable and keeps checklist progress', async () => {
+  const session = await newSession();
+  await api('POST', `/research/${session.id}/sources`, { type: 'text', title: 'Official notice', text: NOTICE });
+  await api('POST', `/research/${session.id}/sources`, { type: 'text', title: 'Blog', text: BLOG });
+  const first = (await api('POST', `/research/${session.id}/analyze`, {})).json.session;
+  const ticked = first.checklist[1];
+  await api('PATCH', `/research/${session.id}/checklist/${ticked.id}`, { done: true });
+  await api('POST', `/research/${session.id}/checklist`, { text: 'Call the scholarship help desk', priority: 'low' });
+
+  const second = (await api('POST', `/research/${session.id}/analyze`, {})).json.session;
+  assert.equal(second.analysis.gaps.length, first.analysis.gaps.length);
+  assert.equal(second.analysis.contradictions.length, first.analysis.contradictions.length);
+  const keys = second.checklist.map((i) => i.key);
+  assert.equal(new Set(keys).size, keys.length, 'no duplicate checklist items');
+  assert.equal(second.checklist.find((i) => i.key === ticked.key).done, true);
+  assert.ok(second.checklist.some((i) => i.origin === 'user' && i.text === 'Call the scholarship help desk'));
+});
+
+test('evidence references in API findings point to real sources and verbatim text', async () => {
+  const session = await newSession();
+  const a = (await api('POST', `/research/${session.id}/sources`, { type: 'text', title: 'Official notice', text: NOTICE })).json.source;
+  const b = (await api('POST', `/research/${session.id}/sources`, { type: 'text', title: 'Blog', text: BLOG })).json.source;
+  const texts = { [a.id]: NOTICE, [b.id]: BLOG };
+  const { analysis } = (await api('POST', `/research/${session.id}/analyze`, {})).json.session;
+  const norm = (s) => s.replace(/\s+/g, ' ');
+  for (const claim of analysis.claims) assert.ok(norm(texts[claim.sourceId]).includes(norm(claim.text)), claim.id);
+  for (const c of analysis.contradictions) {
+    for (const side of [c.claimA, c.claimB]) assert.ok(norm(texts[side.sourceId]).includes(norm(side.text)), c.id);
+  }
+  for (const g of analysis.gaps) for (const id of g.reviewedSourceIds) assert.ok(texts[id], `${g.id} references ${id}`);
+});

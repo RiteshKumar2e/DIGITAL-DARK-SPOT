@@ -33,6 +33,8 @@ export const CONTRADICTION_CLASS = {
   scope_difference: { label: 'May differ in scope', tone: 'medium' },
   unit_difference: { label: 'May use different units', tone: 'medium' },
   different_cycle: { label: 'May be a different cycle', tone: 'low' },
+  inconclusive: { label: 'Inconclusive', tone: 'info' },
+  not_comparable: { label: 'Not directly comparable', tone: 'info' },
 };
 
 export const AI_ASSESSMENT = {

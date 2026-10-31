@@ -75,3 +75,12 @@ test('rate limiting returns 429 with a JSON message', async () => {
   assert.equal((await last.json()).error.code, 'rate_limited');
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+test('concurrent writes all land and the file stays valid JSON', async () => {
+  await fs.mkdir(dir, { recursive: true });
+  const { saveSession } = await import('../src/services/store.service.js');
+  const ids = Array.from({ length: 25 }, (_, i) => `concurrent_${String(i).padStart(12, '0')}`);
+  await Promise.all(ids.map((id) => saveSession({ id, createdAt: new Date().toISOString(), sources: [] })));
+  const data = JSON.parse(await fs.readFile(process.env.DATA_FILE, 'utf8'));
+  for (const id of ids) assert.ok(data.sessions.some((s) => s.id === id), id);
+});

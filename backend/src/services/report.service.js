@@ -9,6 +9,8 @@ const CLASS_LABEL = {
   scope_difference: 'May differ in scope',
   unit_difference: 'May use different units',
   different_cycle: 'May be a different cycle',
+  inconclusive: 'Inconclusive',
+  not_comparable: 'Not directly comparable',
 };
 
 const sourceName = (s, i) => `S${i + 1}`;
@@ -38,6 +40,7 @@ export function buildMarkdown(session) {
   push(
     `**Research type:** ${analysis.profile.label}  `,
     `**Analysis run:** ${analysis.runAt} (engine ${analysis.engine})  `,
+    ...(session.analysisStale ? ['**Note:** sources or the question changed after this analysis; re-run it for current results.  '] : []),
     `**Report generated:** ${new Date().toISOString()}  `,
     `**Evidence reviewed:** ${analysis.scope.sourceCount} of ${session.sources.length} sources, ${analysis.scope.wordCount} words`,
     '',
@@ -50,9 +53,27 @@ export function buildMarkdown(session) {
     const where = s.finalUrl || s.url || (s.kind === 'pdf' ? `Uploaded PDF: ${s.fileName}` : s.kind === 'sample' ? 'Simulated sample document' : 'Pasted text');
     const date = s.modified ? `updated ${s.modified.value}` : s.published ? `published ${s.published.value}` : 'publication date not established';
     const status = s.status === 'retrieved' ? 'reviewed' : `NOT reviewed (${s.error?.message || 'not retrieved'})`;
-    push(`- **${sourceName(s, i)}** ${mdEscape(s.title)} | ${mdEscape(where)} | ${date} | retrieved ${s.retrievedAt || 'n/a'} | ${status}`);
+    const fingerprint = analysis.sourceSnapshot?.[s.id]?.contentHash ? ` | fingerprint ${analysis.sourceSnapshot[s.id].contentHash.slice(0, 10)}` : '';
+    push(`- **${sourceName(s, i)}** ${mdEscape(s.title)} | ${mdEscape(where)} | ${date} | retrieved ${s.retrievedAt || 'n/a'} | ${status}${fingerprint}`);
   });
   push('');
+
+  push('## What was checked', '');
+  for (const row of analysis.coverage || []) {
+    const found = Object.entries(row.bySource).filter(([, n]) => n > 0).map(([id]) => labels[id]);
+    push(`- **${row.label}** (${row.importance}): ${row.statusLabel || (found.length ? 'covered' : 'not found')}${found.length ? ` — found in ${found.join(', ')}` : ''}`);
+  }
+  push('');
+
+  push('## What remains unknown', '');
+  const unknown = [];
+  for (const g of analysis.gaps.filter((x) => x.kind !== 'single_source')) unknown.push(`- ${mdEscape(g.title)}`);
+  for (const c of analysis.contradictions.filter((x) => ['possible_conflict', 'list_difference', 'inconclusive'].includes(x.classification))) {
+    unknown.push(`- Unresolved: ${mdEscape(c.subject)} (${mdEscape(c.claimA.value)} vs ${mdEscape(c.claimB.value)})`);
+  }
+  for (const id of analysis.scope.notReviewedSourceIds) unknown.push(`- Source ${labels[id]} could not be retrieved, so its content is unknown`);
+  for (const id of analysis.timeline?.undatedSourceIds || []) unknown.push(`- Publication date of ${labels[id]} not established`);
+  push(...(unknown.length ? unknown : ['- Nothing flagged by the rule checks within the reviewed sources.']), '');
 
   push('## Potential information gaps', '');
   if (!analysis.gaps.length) push('No potential gaps were detected by the rule checks within the reviewed sources.', '');
@@ -101,7 +122,7 @@ export function buildMarkdown(session) {
     '- Sources are retrieved on the server; pages behind logins, paywalls or bot protection are not read.',
     '- Gap detection matches wording for each topic; information phrased differently may be missed.',
     '- Contradictions are reported only where each source states one explicit value; differences explained by year, unit or group are labelled separately.',
-    '- Dates come only from what each source declares; undated sources are not assumed to be outdated.',
+    '- Dates come only from what each source declares; undated sources are not assumed to be outdated. Freshness thresholds are warning rules, not proof of error.',
     '- Checklist items marked done were ticked by the user and are not independently verified by this tool.', '');
   return L.join('\n');
 }

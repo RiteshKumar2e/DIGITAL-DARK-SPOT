@@ -31,7 +31,7 @@ function applyExtraction(source, extracted) {
 }
 
 // Short pages dominated by consent banners, JavaScript notices or bot checks.
-const INTERSTITIAL = /(enable javascript|javascript is (?:disabled|required)|please turn on javascript|accept (?:all )?cookies|cookie (?:settings|consent|preferences)|we use cookies|verify (?:that )?you are (?:a )?human|are you a robot|checking your browser|captcha|access denied)/i;
+const INTERSTITIAL = /\b(enable javascript|javascript is (?:disabled|required)|please turn on javascript|accept (?:all )?cookies|cookie (?:settings|consent|preferences)|we use cookies|verify (?:that )?you are (?:a )?human|are you a robot|checking your browser|captcha|access denied)\b/i;
 
 export function looksLikeInterstitial(source) {
   return source.wordCount < 200 && INTERSTITIAL.test(source.text || '');

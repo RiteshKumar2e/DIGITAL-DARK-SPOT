@@ -179,7 +179,8 @@ export function FreshnessList({ items, timeline, thresholdMonths }) {
     <div className="stack">
       <p className="small muted">
         Freshness threshold for this type of research: {thresholdMonths} months. Sources older than this are flagged; undated sources
-        are reported as “publication date not established”, not as outdated.
+        are reported as “publication date not established”, not as outdated. The threshold is a warning rule: an old date does not prove the
+        information is wrong, and a recent date does not prove it is right.
       </p>
       {items.length === 0 ? (
         <EmptyState title="No freshness warnings">

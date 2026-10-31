@@ -12,6 +12,10 @@ function matches(analysis, rule) {
       return analysis.freshness.some((f) => f.sourceId === rule.sourceId && (!rule.kind || f.kind === rule.kind));
     case 'notReviewed':
       return analysis.scope.notReviewedSourceIds.includes(rule.sourceId);
+    case 'gapMentionsUnreviewed':
+      return analysis.gaps.some((g) => g.facet === rule.facet && g.unreviewedSourceIds?.length > 0 && /not retrieved/.test(g.detail));
+    case 'limitedScope':
+      return analysis.gaps.length > 0 && analysis.gaps.every((g) => g.scope.level === 'limited');
     case 'official':
       return analysis.quality.factors.some((f) => f.key === 'official' && f.value !== '0');
     default:

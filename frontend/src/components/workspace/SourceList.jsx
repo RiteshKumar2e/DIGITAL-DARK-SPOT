@@ -113,7 +113,10 @@ function SourceItem({ source, sessionId, demo, onChange, snapshot }) {
             className="btn btn-ghost btn-sm"
             disabled={Boolean(busy)}
             aria-label={`Remove source ${source.label}`}
-            onClick={() => run('remove', async () => ({ session: (await researchApi.removeSource(sessionId, source.id)).session }))}
+            onClick={() => {
+              if (!window.confirm(`Remove source ${source.label} (${source.title || 'untitled'})? Its evidence will be dropped when you run the analysis again.`)) return;
+              run('remove', async () => ({ session: (await researchApi.removeSource(sessionId, source.id)).session }));
+            }}
           >
             {busy === 'remove' ? 'Removing…' : 'Remove'}
           </button>

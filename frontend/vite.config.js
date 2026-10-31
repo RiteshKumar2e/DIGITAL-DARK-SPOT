@@ -47,8 +47,11 @@ function siteUrlInHtml(siteUrl) {
   };
 }
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
+  if (command === 'build' && mode === 'production' && (!env.VITE_API_BASE_URL || /localhost|127\.0\.0\.1/.test(env.VITE_API_BASE_URL))) {
+    console.warn('\n[warning] VITE_API_BASE_URL is not set to a public backend URL. This build will call ' + (env.VITE_API_BASE_URL || 'http://localhost:4000') + '.\n          Set it before building for deployment.\n');
+  }
   return {
     plugins: [react(), siteUrlInHtml(env.VITE_SITE_URL), seoFiles(env.VITE_SITE_URL)],
     server: { port: 5173, strictPort: true },

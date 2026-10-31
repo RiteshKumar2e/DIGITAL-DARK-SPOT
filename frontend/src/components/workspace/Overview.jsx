@@ -2,6 +2,7 @@ import { useEvidence } from './EvidenceContext.jsx';
 import { ClaimQuote, Quote, SourceRef } from './Evidence.jsx';
 import { Alert, Tag } from '../ui.jsx';
 import { IMPORTANCE } from '../../utils/labels.js';
+import { formatDateTime } from '../../utils/format.js';
 
 const STATUS_TONE = { conflict: 'high', difference: 'medium', missing: 'high', unspecified: 'medium', single: 'low', covered: 'ok' };
 const FINDING_TAB = (id) => (id?.startsWith('con_') ? 'contradiction' : 'gap');
@@ -195,6 +196,50 @@ function CoverageTable({ coverage, reviewedIds, onGoToFinding }) {
   );
 }
 
+function Reproducibility({ analysis }) {
+  const { sourcesById } = useEvidence();
+  const snapshot = analysis.sourceSnapshot || {};
+  return (
+    <details className="disclosure reproducibility">
+      <summary>Reproducibility details</summary>
+      <div className="disclosure-body">
+        <p className="small muted">
+          Analysis engine {analysis.engine}, run {formatDateTime(analysis.runAt)}. A content fingerprint is recorded for each source,
+          so a changed source can be told apart from a changed analysis.
+        </p>
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Sources used by this analysis">
+          <table className="table">
+            <thead>
+              <tr>
+                <th scope="col">Source</th>
+                <th scope="col">Status at analysis</th>
+                <th scope="col">Retrieved</th>
+                <th scope="col">Fingerprint</th>
+                <th scope="col">Now</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(snapshot).map(([id, snap]) => {
+                const source = sourcesById[id];
+                const changed = source && source.contentHash && snap.contentHash && source.contentHash !== snap.contentHash;
+                return (
+                  <tr key={id}>
+                    <th scope="row">{source ? source.label : 'Removed'}</th>
+                    <td>{snap.status === 'retrieved' ? 'Reviewed' : 'Not retrieved'}</td>
+                    <td>{snap.retrievedAt ? formatDateTime(snap.retrievedAt) : '—'}</td>
+                    <td className="mono">{snap.contentHash ? snap.contentHash.slice(0, 10) : '—'}</td>
+                    <td>{!source ? 'Removed since' : changed ? 'Changed since' : 'Unchanged'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+  );
+}
+
 export default function Overview({ analysis, onGoToFinding }) {
   const reviewedIds = analysis.scope.reviewedSourceIds;
   const withEvidence = analysis.coverage.filter((row) => row.topClaimIds.length);
@@ -214,6 +259,7 @@ export default function Overview({ analysis, onGoToFinding }) {
       </section>
 
       <QualityReport quality={analysis.quality} />
+      <Reproducibility analysis={analysis} />
 
       <section className="stack" aria-labelledby="facts-heading">
         <div className="stack-sm">
