@@ -22,6 +22,12 @@ export default function PrivacyPage() {
       <h2>Who operates this service</h2>
       <p>[Operator name and contact email: DRAFT, to be completed by the operator.]</p>
 
+      <Alert tone="warning" title="Anyone with a session link can open that research">
+        There are no accounts or passwords. A research session is reachable by anyone who has its link, including its question,
+        sources, findings and checklist. Share a link only with people you intend to see it, and do not put personal or sensitive
+        information into a session.
+      </Alert>
+
       <h2>What you submit and what is stored</h2>
       <ul>
         <li><strong>Research question, research type and optional scope</strong> (situation, location, time period) you enter.</li>
@@ -37,7 +43,10 @@ export default function PrivacyPage() {
       <h2>How long it is kept</h2>
       <p>
         Sessions that have not been changed for the retention period set by the operator (30 days by default) are deleted
-        automatically. You can delete a session immediately with “Delete this session” in the workspace.
+        automatically. You can delete a session immediately with “Delete this session” in the workspace; it is then removed from
+        the application’s data store and its link stops working. Reports you exported or downloaded are not affected, and any
+        backups kept by the hosting provider are outside the application’s control. [Hosting backup policy: DRAFT, review
+        required.]
       </p>
 
       <h2>Retrieving web pages</h2>

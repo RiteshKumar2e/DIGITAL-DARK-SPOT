@@ -52,8 +52,12 @@ function requestOnce(url, deadline) {
         },
         timeout: remaining,
       },
-      (res) => resolve({ req, res }),
+      (res) => {
+        clearTimeout(timer);
+        resolve({ req, res });
+      },
     );
+    // Covers connecting and waiting for headers; the body has its own deadline (see readBody).
     const timer = setTimeout(() => req.destroy(new FetchError('timeout', 'The page took too long to respond.')), remaining);
     req.on('close', () => clearTimeout(timer));
     req.on('timeout', () => req.destroy(new FetchError('timeout', 'The page took too long to respond.')));
@@ -82,7 +86,7 @@ function decodeBody(buffer, contentType) {
   }
 }
 
-function readBody(res, maxBytes) {
+function readBody(res, maxBytes, deadline, timeoutMessage) {
   return new Promise((resolve, reject) => {
     const encoding = String(res.headers['content-encoding'] || '').toLowerCase();
     let stream = res;
@@ -92,28 +96,44 @@ function readBody(res, maxBytes) {
 
     const chunks = [];
     let size = 0;
-    let truncated = false;
+    let settled = false;
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      fn(value);
+    };
+    const stop = () => {
+      res.destroy();
+      if (stream !== res) stream.destroy?.();
+    };
+    const timer = setTimeout(() => {
+      stop();
+      finish(reject, new FetchError('timeout', timeoutMessage));
+    }, Math.max(0, deadline - Date.now()));
+
     stream.on('data', (chunk) => {
       size += chunk.length;
       if (size > maxBytes) {
-        truncated = true;
         chunks.push(chunk.subarray(0, Math.max(0, chunk.length - (size - maxBytes))));
-        res.destroy();
-        stream.destroy?.();
-        resolve({ buffer: Buffer.concat(chunks), truncated });
+        stop();
+        finish(resolve, { buffer: Buffer.concat(chunks), truncated: true });
         return;
       }
       chunks.push(chunk);
     });
-    stream.on('end', () => resolve({ buffer: Buffer.concat(chunks), truncated }));
-    stream.on('error', (err) => {
-      if (truncated) return;
-      reject(new FetchError('decode_failed', 'The page content could not be decoded.', { detail: err.code }));
-    });
-    res.on('error', (err) => {
-      if (truncated) return;
-      reject(err instanceof FetchError ? err : new FetchError('network_error', 'The connection was interrupted.'));
-    });
+    stream.on('end', () => finish(resolve, { buffer: Buffer.concat(chunks), truncated: false }));
+    // Distinguish a slow download, a broken connection and genuinely undecodable content.
+    const onError = (err) => {
+      if (err instanceof FetchError) return finish(reject, err);
+      if (Date.now() >= deadline) return finish(reject, new FetchError('timeout', timeoutMessage));
+      if (stream !== res && err?.code?.startsWith?.('Z_')) {
+        return finish(reject, new FetchError('decode_failed', 'The page content could not be decompressed.', { detail: err.code }));
+      }
+      return finish(reject, new FetchError('network_error', 'The connection was interrupted while downloading. Try again.', { detail: err?.code }));
+    };
+    stream.on('error', onError);
+    if (stream !== res) res.on('error', onError);
   });
 }
 
@@ -174,7 +194,11 @@ export async function fetchPublicPage(inputUrl, { request = requestOnce } = {}) 
     }
 
     const isPdf = mime === 'application/pdf';
-    const { buffer, truncated } = await readBody(res, isPdf ? limits.maxPdfBytes : limits.maxResponseBytes);
+    const bodyDeadline = Date.now() + (isPdf ? limits.pdfDownloadTimeoutMs : limits.fetchTimeoutMs);
+    const timeoutMessage = isPdf
+      ? `The PDF took longer than ${Math.round(limits.pdfDownloadTimeoutMs / 1000)} seconds to download. Try again, or download it and upload the file.`
+      : 'The page took too long to download.';
+    const { buffer, truncated } = await readBody(res, isPdf ? limits.maxPdfBytes : limits.maxResponseBytes, bodyDeadline, timeoutMessage);
     if (isPdf && truncated) {
       throw new FetchError('too_large', `The PDF is larger than ${Math.round(limits.maxPdfBytes / 1048576)} MB.`, { httpStatus: status });
     }

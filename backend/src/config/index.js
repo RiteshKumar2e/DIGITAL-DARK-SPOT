@@ -30,7 +30,8 @@ export const config = {
     maxPastedTextLength: 60000,
     maxStoredTextLength: 60000,
     maxResponseBytes: 3 * 1024 * 1024,
-    fetchTimeoutMs: 12000,
+    fetchTimeoutMs: 12000, // until response headers arrive, and for HTML bodies
+    pdfDownloadTimeoutMs: 30000, // PDF bodies are larger
     maxRedirects: 5,
     maxPdfBytes: intFromEnv('MAX_PDF_MB', 10) * 1024 * 1024,
     maxPdfPages: 200,

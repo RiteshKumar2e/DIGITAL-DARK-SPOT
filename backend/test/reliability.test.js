@@ -88,3 +88,17 @@ test('concurrent writes all land and the file stays valid JSON', async () => {
   const data = JSON.parse(await fs.readFile(process.env.DATA_FILE, 'utf8'));
   for (const id of ids) assert.ok(data.sessions.some((s) => s.id === id), id);
 });
+
+test('duplicate AI key points citing the same quote are kept once', () => {
+  const sourcesById = { s1: { id: 's1', text: 'Applicants must hold a bachelor degree and have three years of work experience.' } };
+  const quote = 'Applicants must hold a bachelor degree and have three years of work experience.';
+  const out = validateAiOutput(
+    { key_points: [
+      { statement: 'Degree required', source_id: 's1', quote },
+      { statement: 'Degree and experience required', source_id: 's1', quote: `  ${quote.toUpperCase()} ` },
+    ] },
+    { sourcesById, contradictionIds: new Set() },
+  );
+  assert.equal(out.keyPoints.length, 1);
+  assert.equal(out.discardedStatements, 0);
+});

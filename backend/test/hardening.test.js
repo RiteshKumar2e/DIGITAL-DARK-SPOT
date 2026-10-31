@@ -70,3 +70,11 @@ test('retention purge deletes only sessions older than the retention period', as
   assert.ok(!onDisk.sessions.some((s) => s.id === 'OLDOLDOLDOLDOLDOLDOLD1'), 'purge is persisted');
   await fs.rm(dir, { recursive: true, force: true });
 });
+
+test('PDF line wrapping is undone without merging separate sentences or real compounds', async () => {
+  const { joinWrappedLines } = await import('../src/services/pdf.service.js');
+  assert.equal(
+    joinWrappedLines('show these models to\nbe more paral-\nlelizable.\nOn the English-\nto-German task.\n\nNext.'),
+    'show these models to be more parallelizable.\nOn the English-to-German task.\n\nNext.',
+  );
+});

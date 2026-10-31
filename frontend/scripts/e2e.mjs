@@ -98,7 +98,7 @@ await page.waitForURL(/research\/.+/);
 created.push(page.url().split('/research/')[1]);
 log('scope line:', await page.locator('.scope-line').innerText());
 await page.getByText('Search', { exact: true }).click();
-const searchConfigured = (await (await page.request.get(page.url().replace(/:\d+\/.*/, ':4000/api/health'))).json()).search?.configured;
+const searchConfigured = (await (await page.request.get(`${API}/api/health`)).json()).search?.configured;
 if (searchConfigured) {
   // Live provider: run a real search and add one result as a source.
   await page.getByLabel('Search the web').fill('Fulbright-Nehru Master fellowship eligibility');

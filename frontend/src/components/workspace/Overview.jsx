@@ -36,8 +36,8 @@ function AiSummary({ ai }) {
             {ai.discardedStatements > 0 &&
               ` ${ai.discardedStatements} AI statement${ai.discardedStatements === 1 ? ' was' : 's were'} discarded because the quote could not be found in the source.`}
           </p>
-          {ai.keyPoints.map((point) => (
-            <div key={`${point.sourceId}-${point.quote}`} className="stack-sm">
+          {ai.keyPoints.map((point, index) => (
+            <div key={`${index}-${point.sourceId}`} className="stack-sm">
               <p>
                 <strong>{point.statement}</strong>
               </p>

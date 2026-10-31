@@ -14,7 +14,7 @@ Built for the **Shinchan Online Hackathon 2026** · Problem statement: *Digital 
 ![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express)
-![Tests](https://img.shields.io/badge/backend%20tests-45%20passing-2e6a43)
+![Tests](https://img.shields.io/badge/backend%20tests-49%20passing-2e6a43)
 
 </div>
 
@@ -38,12 +38,13 @@ Built for the **Shinchan Online Hackathon 2026** · Problem statement: *Digital 
 8. [Architecture](#architecture)
 9. [Getting started](#getting-started)
 10. [Configuration](#configuration)
-11. [API reference](#api-reference)
-12. [Security](#security)
-13. [Privacy](#privacy)
-14. [Testing and evaluation](#testing-and-evaluation)
-15. [Known limitations](#known-limitations)
-16. [Future scope](#future-scope)
+11. [Deployment](#deployment)
+12. [API reference](#api-reference)
+13. [Security](#security)
+14. [Privacy](#privacy)
+15. [Testing and evaluation](#testing-and-evaluation)
+16. [Known limitations](#known-limitations)
+17. [Future scope](#future-scope)
 
 ---
 
@@ -218,7 +219,7 @@ npm run dev
 
 On start, the backend prints whether AI review and web search are enabled. Open http://localhost:5173.
 
-**Production:** `cd backend && npm install --omit=dev && npm start`, and `cd frontend && npm run build` (static files in `frontend/dist`). No deployment configuration is included because no hosting platform has been chosen. Whichever static host you use must rewrite unknown paths to `index.html` (SPA fallback), otherwise `/research/...` links return 404 on reload. Configure HTTPS at the hosting platform or reverse proxy. Set `NODE_ENV=production`, `FRONTEND_ORIGIN`, `TRUST_PROXY` (backend) and `VITE_API_BASE_URL`, `VITE_SITE_URL` (frontend, before building). The frontend build prints a warning if `VITE_API_BASE_URL` still points to localhost. The JSON data file must live on persistent disk; hosts with ephemeral filesystems lose sessions on restart.
+For deployment, see [Deployment](#deployment).
 
 ## Configuration
 
@@ -231,6 +232,7 @@ On start, the backend prints whether AI review and web search are enabled. Open 
 | `FRONTEND_ORIGIN` | `http://localhost:5173` | Comma-separated CORS allow-list |
 | `TRUST_PROXY` | `0` | Reverse proxies in front of the API (for rate limiting) |
 | `SESSION_RETENTION_DAYS` | `30` | Sessions unchanged this long are deleted |
+| `DATA_FILE` | `backend/data/sessions.json` | Where sessions are stored. In production, point it at a persistent disk |
 | `MAX_PDF_MB` | `10` | PDF upload and download limit |
 | `GROQ_API_KEY` | *(empty)* | Enables the optional AI review |
 | `GROQ_MODEL` | `openai/gpt-oss-120b` | Groq model with JSON mode |
@@ -253,6 +255,44 @@ Public values only; everything here is bundled into the browser.
 
 - **AI review:** set `GROQ_API_KEY` and restart the backend.
 - **Web search:** set `SEARCH_PROVIDER=tavily` with `TAVILY_API_KEY`, or `SEARCH_PROVIDER=serper` with `SERPER_API_KEY`, then restart. Both providers offer free tiers (check their current limits). Without a key, the Search tab says so and manual sources keep working. No results are ever simulated.
+
+## Deployment
+
+The app is two independent services: a static frontend and a Node.js API. **It has not been deployed by the authors yet; the steps below are a checklist, not a record of a live deployment.**
+
+### Backend (any Node.js host, for example Render, Railway or a VPS)
+
+| Setting | Value |
+| --- | --- |
+| Root directory | `backend` |
+| Node.js | 22.9 or newer |
+| Build command | `npm install --omit=dev` |
+| Start command | `npm start` |
+| Health check path | `/api/health` |
+| Persistent disk | Required. Mount one (for example at `/var/data`) and set `DATA_FILE=/var/data/sessions.json`. Without it, sessions are lost on every restart or redeploy. Run a single instance: the JSON store is not shared between instances. |
+
+Environment: `NODE_ENV=production`, `FRONTEND_ORIGIN=https://<your-frontend-domain>` (exact origin, no trailing slash), `TRUST_PROXY=1` behind the host's proxy, plus optional `GROQ_*`, `SEARCH_PROVIDER` and `TAVILY_API_KEY` / `SERPER_API_KEY`. The server refuses to start on invalid settings and logs which optional integrations are enabled.
+
+### Frontend (any static host, for example Vercel or Netlify)
+
+| Setting | Value |
+| --- | --- |
+| Root directory | `frontend` |
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| Build-time environment | `VITE_API_BASE_URL=https://<your-backend-domain>`, `VITE_SITE_URL=https://<your-frontend-domain>` |
+| SPA fallback | Included for Vercel (`frontend/vercel.json`) and Netlify (`frontend/public/_redirects`). On other hosts, add a rewrite of all paths to `/index.html`, or reloading a `/research/...` page returns 404. |
+
+The build prints a warning if `VITE_API_BASE_URL` still points to localhost. With `VITE_SITE_URL` set, the build also emits `sitemap.xml`, a `robots.txt` that references it, and canonical / Open Graph URLs.
+
+### After deploying, check
+
+1. `https://<backend>/api/health` returns `"status":"ok"` with the expected AI and search status.
+2. The frontend loads, and reloading a `/research/<id>` page does not return 404.
+3. Creating a session works from the deployed frontend (this confirms CORS and the API URL).
+4. Restarting the backend keeps existing sessions (this confirms the persistent disk).
+5. Both sites are served over HTTPS.
+6. Optionally, `E2E_BASE_URL=https://<frontend> E2E_API_URL=https://<backend> CHROME_PATH=... npm run test:e2e` from `frontend/`.
 
 ## API reference
 
@@ -284,7 +324,7 @@ Base URL `http://localhost:4000/api`. Errors use `{ "error": { "code", "message"
 - **Persistence:** atomic writes (temp file and rename), serialised; a failed write is reported to the user (HTTP 503) instead of being ignored, and the previous file stays intact; an unreadable data file is preserved as `.corrupt-<timestamp>` rather than overwritten.
 - **Concurrency:** adding, retrying or removing sources and running an analysis are mutually exclusive per session (HTTP 409 while busy); checklist ticks made during an analysis are kept.
 - **Logs:** session ids work as access keys, so they are redacted from server error logs; research text is never logged.
-- **Access model:** there are no accounts. A session is accessible to anyone with its unguessable 128-bit link. Research pages are `noindex` and excluded from `robots.txt`.
+- **Access model:** there are no accounts. **Anyone who has a session link can open and change that session.** The workspace, Privacy policy and Terms all state this. A session is accessible to anyone with its unguessable 128-bit link. Research pages are `noindex` and excluded from `robots.txt`.
 
 ## Privacy
 
@@ -308,15 +348,17 @@ CHROME_PATH="C:/Program Files/Google/Chrome/Application/chrome.exe" npm run test
 
 | Check | Result |
 | --- | --- |
-| `npm test` (backend) | 45 passed, 0 failed |
-| `npm run eval` | 17 cases · expected findings detected 18/18 · forbidden findings produced 0/17 · invalid evidence references 0 |
+| `npm test` (backend) | 49 passed, 0 failed |
+| `npm run eval` | 18 cases · expected findings detected 19/19 · forbidden findings produced 0/18 · invalid evidence references 0 |
 | `npm run build` (frontend) | Succeeds |
-| `npm run test:e2e` | Full journey passes, including a live Tavily search when a key is configured, and deletes the sessions it created. No horizontal overflow at 320, 375, 390, 768, 1024 and 1440 px; no console errors. |
+| `npm run test:e2e` | Full journey passes, including a live Tavily search when a key is configured, and deletes the sessions it created. It depends on live websites and providers, so a slow or failing network makes it fail (as one run did on 31 October 2026, when Wikipedia was unreachable from the test machine; the next run passed). No horizontal overflow at 320, 375, 390, 768, 1024 and 1440 px; no console errors. |
 | `npm audit` (both apps) | 0 vulnerabilities |
 
 The tests cover the health endpoint, input validation and field errors, oversized bodies, unsafe URL rejection, duplicate content, short text, PDF upload with page numbers, non-PDF and scanned-PDF handling, the analysis workflow, checklist updates, Markdown and HTML export (including XSS escaping), session deletion, search not configured, the read-only sample, JSON 404s, corrupted-store recovery, AI output validation (malformed output, invented quotes, unknown sources), prompt-injection-like source text, rate limiting, redirect hops to private and metadata addresses (with a fake transport), redirect loops, HTTP error mapping, oversized and empty responses, DNS checks at connection time, cookie-wall detection, storage write failures, concurrent writes, repeated analysis, verbatim evidence references, damaged, truncated and over-limit PDFs, retention purge, and session ids being kept out of logs. Tests that write data run against a temporary file and refuse to start if they would touch the real data store.
 
-The evaluation fixtures (`backend/test/fixtures/eval-cases.js`) are fixed texts covering conflicting deadlines, different application years, missing renewal conditions, conflicting document lists, an official source next to an older secondary source, an undated page, an inaccessible URL, a question with no relevant coverage, consistent sources (no false conflict), a question year not covered, different currencies, an ambiguous numeric date, different applicant categories, alternative wording, a future publication date, a failed source and insufficient evidence. **These measure rule behaviour on a small curated set; they are not an accuracy figure for real-world pages.**
+The evaluation fixtures (`backend/test/fixtures/eval-cases.js`) are fixed texts covering conflicting deadlines, different application years, missing renewal conditions, conflicting document lists, an official source next to an older secondary source, an undated page, an inaccessible URL, a question with no relevant coverage, consistent sources (no false conflict), a question year not covered, different currencies, an ambiguous numeric date, different applicant categories, alternative wording, a future publication date, a failed source and insufficient evidence. **These measure rule behaviour on a small curated set; they are not an accuracy figure for real-world pages.** The demo session and these fixtures use **simulated** text; the checks below used **real** public sources.
+
+**Manual run on real public sources (31 October 2026).** One session with Wikipedia, two news and education pages found through Tavily search, a deliberately broken link and two pasted texts: all retrievals behaved as expected (the broken link was reported as not retrieved with "HTTP 404"; the duplicate URL was rejected), and 42 of 42 evidence quotes were found verbatim in their sources. A real 15-page research PDF (arXiv 1706.03762) uploaded through the app produced claims with page numbers on all 16 extracted claims. Downloading that PDF by URL on this development machine exceeded the 30-second download limit because the remote server was slow (about 41 KB/s with plain curl); the app reported it as a timeout and suggested uploading the file. With deliberately invalid Groq and Tavily keys, the analysis still completed with rule-based findings and both failures were reported clearly. These are observations from one run, not repeatable automated tests.
 
 Not covered by automated unit tests: live web retrieval and live Groq and search-provider calls, which depend on external services. Live Tavily search and Groq review were exercised manually and in the browser check with keys configured; Serper has not been tested against the live service.
 

@@ -73,11 +73,16 @@ export function validateAiOutput(raw, { sourcesById, contradictionIds }) {
   let discarded = 0;
 
   const keyPoints = [];
+  const seenQuotes = new Set();
   for (const point of Array.isArray(data.key_points) ? data.key_points.slice(0, 12) : []) {
     const statement = asString(point?.statement, 300);
     const quote = asString(point?.quote, 300);
     const source = sourcesById[point?.source_id];
     if (statement && quote && source && quoteIsInSource(quote, source.text || '')) {
+      // The same quote cited twice adds nothing; keep the first.
+      const key = `${source.id}|${normalizeForMatch(quote)}`;
+      if (seenQuotes.has(key)) continue;
+      seenQuotes.add(key);
       keyPoints.push({ statement, quote, sourceId: source.id, quoteVerified: true });
     } else discarded += 1;
   }

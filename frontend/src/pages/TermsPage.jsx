@@ -34,6 +34,10 @@ export default function TermsPage() {
       <ul>
         <li>Only add sources you are allowed to access, and do not use the service to get around logins, paywalls or access controls.</li>
         <li>Do not submit personal, confidential or sensitive information belonging to you or others.</li>
+        <li>
+          Keep session links private. Anyone who has a session link can open and change that session; there are no accounts or
+          passwords.
+        </li>
         <li>Do not use the service to overload websites or for automated bulk retrieval. Requests are rate limited.</li>
         <li>Respect the copyright of the sources. Quotes are shown to explain findings and remain the property of their owners.</li>
       </ul>

@@ -240,6 +240,12 @@ export default function WorkspacePage() {
               )}
             </>
           )}
+          {!session.demo && (
+            <p className="link-warning small">
+              <strong>Private by link only.</strong> Anyone with this page’s address can open and change this session. Share it only
+              with people you trust, and avoid personal information.
+            </p>
+          )}
           {session.demo && (
             <Alert tone="sample" title="You are viewing a sample session with simulated sources">
               The three documents are invented for demonstration: the scholarship, the organisations and the dates are not

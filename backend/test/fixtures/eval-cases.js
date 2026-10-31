@@ -178,4 +178,15 @@ export const EVAL_CASES = [
     expect: [{ type: 'gap', facet: 'eligibility', kind: 'missing' }, { type: 'limitedScope' }],
     forbid: [{ type: 'contradiction' }],
   },
+  {
+    name: 'Same named cycle, deadlines in different calendar years, is a possible contradiction',
+    question: 'What is the deadline for the Lotus Scholarship 2027-28?',
+    profile: 'scholarship',
+    sources: [
+      { id: 'a', text: 'Lotus Scholarship 2027-28. Eligibility: enrolled degree students. The last date to apply is 30 November 2026.', published: '2026-08-01' },
+      { id: 'b', text: 'Lotus Scholarship 2027-28 explained. Eligibility: enrolled degree students. The deadline to apply is 15 January 2027.', published: '2026-08-05' },
+    ],
+    expect: [{ type: 'contradiction', facet: 'deadline', classification: 'possible_conflict' }],
+    forbid: [{ type: 'contradiction', facet: 'deadline', classification: 'different_cycle' }],
+  },
 ];

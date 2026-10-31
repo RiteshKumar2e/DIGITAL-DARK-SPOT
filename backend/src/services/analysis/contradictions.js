@@ -47,6 +47,14 @@ function contextYears(claim, source) {
   return { years: findYears(`${source?.title || ''} ${heading}`), fromHeading: true };
 }
 
+// The cycle a source is about, from its title and opening sentence
+// (e.g. "Scholarship 2027-28"). Dates further down the text are not used.
+function headingYears(source) {
+  const firstLine = (source?.text || '').split('\n')[0] || '';
+  const opening = firstLine.split(/(?<=[.!?])\s/)[0].slice(0, 160);
+  return [...new Set(findYears(`${source?.title || ''} ${opening}`))].sort();
+}
+
 // A numeric date such as 05/06/2026 read the other way round (month-first).
 function swappedIso(value) {
   const [y, m, d] = value.iso.split('-');
@@ -71,8 +79,21 @@ function classify(type, claimA, claimB, valueA, valueB, srcA, srcB) {
     const yA = Number(valueA.iso.slice(0, 4));
     const yB = Number(valueB.iso.slice(0, 4));
     if (yA !== yB) {
-      classification = 'different_cycle';
-      reasons.push(`The dates fall in different years (${yA} and ${yB}), so the sources may describe different application cycles.`);
+      // Deadlines often fall in the calendar year before the cycle they belong to,
+      // so the cycle each source names decides, when both name one.
+      const hA = headingYears(srcA);
+      const hB = headingYears(srcB);
+      const sameCycle = hA.length > 0 && hA.join() === hB.join();
+      if (sameCycle) {
+        reasons.push(`Both sources describe the same cycle (${hA.join('-')}) but give deadlines in different calendar years.`);
+      } else {
+        classification = 'different_cycle';
+        reasons.push(
+          hA.length && hB.length && !hA.some((y) => hB.includes(y))
+            ? `The sources describe different cycles (${hA.join('-')} and ${hB.join('-')}).`
+            : `The dates fall in different years (${yA} and ${yB}), so the sources may describe different application cycles.`,
+        );
+      }
     }
     if ((valueA.ambiguous || valueB.ambiguous) && classification === 'possible_conflict') {
       classification = 'inconclusive';

@@ -66,7 +66,7 @@ export async function extractPdf(buffer) {
     const pages = [];
     let text = '';
     pageTexts.forEach((raw, index) => {
-      const pageText = cleanText(raw);
+      const pageText = joinWrappedLines(cleanText(raw));
       if (!pageText) return;
       if (text) text += '\n\n';
       pages.push({ page: index + 1, start: text.length });
@@ -89,6 +89,19 @@ export async function extractPdf(buffer) {
   } finally {
     pdf.destroy?.();
   }
+}
+
+/**
+ * PDFs break sentences at the end of every printed line. Rejoin those lines so
+ * sentences stay whole: a line ending without terminal punctuation continues on
+ * the next line; "re-" + "sults" across a break becomes "results". Lines that end
+ * a sentence, and blank lines, are kept as breaks.
+ */
+export function joinWrappedLines(text) {
+  return text
+    .replace(/([a-z])-\n(?=[a-z]+-)/g, '$1-') // "English-\nto-German": a real compound, keep the hyphen
+    .replace(/([a-z])-\n([a-z])/g, '$1$2')
+    .replace(/([^\n.!?:;])\n(?=[^\n])/g, '$1 ');
 }
 
 /** Page number containing a character offset, for PDF citations. */

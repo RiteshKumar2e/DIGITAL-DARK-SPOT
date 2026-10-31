@@ -97,3 +97,40 @@ test('cookie walls, JavaScript notices and bot checks are not treated as content
   // A full article that merely mentions cookies in its footer is real content.
   assert.equal(looksLikeInterstitial({ wordCount: 900, text: 'Long article text… We use cookies.' }), false);
 });
+
+test('a slow download reports a timeout, not a decoding error', async () => {
+  const { config } = await import('../src/config/index.js');
+  const saved = config.limits.fetchTimeoutMs;
+  config.limits.fetchTimeoutMs = 150;
+  try {
+    const request = async () => {
+      const res = new Readable({ read() {} }); // never ends
+      res.statusCode = 200;
+      res.headers = { 'content-type': 'text/html' };
+      res.push(Buffer.from('<p>partial'));
+      return { res };
+    };
+    await assert.rejects(fetchPublicPage(new URL('https://example.org/slow'), { request }), (err) => {
+      assert.equal(err.code, 'timeout');
+      assert.doesNotMatch(err.message, /decode/);
+      return true;
+    });
+  } finally {
+    config.limits.fetchTimeoutMs = saved;
+  }
+});
+
+test('a connection reset during download is reported as an interrupted connection', async () => {
+  const request = async () => {
+    const res = new Readable({ read() {} });
+    res.statusCode = 200;
+    res.headers = { 'content-type': 'application/pdf' };
+    setTimeout(() => res.destroy(Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' })), 20);
+    return { res };
+  };
+  await assert.rejects(fetchPublicPage(new URL('https://example.org/doc.pdf'), { request }), (err) => {
+    assert.equal(err.code, 'network_error');
+    assert.match(err.message, /interrupted/);
+    return true;
+  });
+});
