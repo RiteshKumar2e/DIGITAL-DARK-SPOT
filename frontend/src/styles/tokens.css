@@ -1,0 +1,64 @@
+/* Design tokens: one light theme only. */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --paper: #faf6ee;
+  --surface: #fffdf9;
+  --surface-sunk: #f3ede2;
+  --line: #e3d9ca;
+  --line-strong: #cbbda8;
+
+  /* Text */
+  --ink: #211d1a;
+  --ink-2: #463f39;
+  --ink-3: #685f57;
+
+  /* Accent: restrained red, used for primary actions and emphasis only */
+  --red: #c21f2f;
+  --red-ink: #9c1825;
+  --red-wash: #fbe9e6;
+
+  /* Supporting colours, always paired with a text label */
+  --mustard: #e9b949;
+  --mustard-wash: #fcf1d2;
+  --green: #2e6a43;
+  --green-wash: #e4efe6;
+  --amber: #85560a;
+  --amber-wash: #faefd8;
+  --slate: #3c5870;
+  --slate-wash: #e6edf3;
+
+  /* Typography */
+  --font-body: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', Consolas, 'Liberation Mono', monospace;
+
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: clamp(1.6rem, 1.2rem + 1.4vw, 2.1rem);
+  --text-3xl: clamp(2.1rem, 1.4rem + 3vw, 3.4rem);
+
+  /* Spacing scale */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 3rem;
+  --s-8: 4.5rem;
+
+  /* Geometry */
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --focus: 0 0 0 3px var(--paper), 0 0 0 5px var(--ink);
+
+  --content: 72rem;
+  --reading: 42rem;
+  --header-h: 4rem;
+}

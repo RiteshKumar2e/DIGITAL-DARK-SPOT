@@ -1,0 +1,24 @@
+{
+  "name": "digital-dark-spot-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "REST API for Digital Dark Spot: source retrieval, information-gap, contradiction and freshness analysis.",
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.9.0"
+  },
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env server.js",
+    "start": "node --env-file-if-exists=.env server.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "groq-sdk": "^1.6.0",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.3.0",
+    "helmet": "^8.3.0"
+  }
+}

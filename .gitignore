@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment files (secrets). Keep the .env.example files.
+.env
+.env.*
+!.env.example
+
+# Build output
+frontend/dist/
+
+# Backend runtime data (research sessions)
+backend/data/
+
+# Logs and OS/editor files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

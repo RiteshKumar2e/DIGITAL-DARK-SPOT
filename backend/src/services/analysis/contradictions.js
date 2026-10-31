@@ -1,0 +1,151 @@
+import { FACETS } from './profiles.js';
+import { findYears } from '../../utils/dates.js';
+
+const COMPARABLE = ['deadline', 'amount', 'fee', 'age', 'income', 'marks'];
+const MAX_FINDINGS = 12;
+
+const PERIODS = [
+  ['monthly', /\b(per month|monthly|a month|\/month|p\.m\.)\b/i],
+  ['yearly', /\b(per annum|per year|annual(?:ly)?|yearly|a year|p\.a\.)\b/i],
+  ['one-time', /\b(one[- ]time|lump ?sum|once)\b/i],
+];
+const CATEGORIES = /\b(sc|st|obc|ews|pwd|pwbd|general category|women|female|girls|male|international|domestic|undergraduate|postgraduate|ug|pg|ph\.?d|masters?|bachelors?|class \d+|tier \d|level \d|category [a-z])\b/gi;
+
+const periodOf = (text) => PERIODS.filter(([, re]) => re.test(text)).map(([name]) => name);
+const categoriesOf = (text) => [...new Set((text.match(CATEGORIES) || []).map((m) => m.toLowerCase()))];
+
+function formatValue(type, value) {
+  if (type === 'date') return value.raw;
+  if (type === 'money') return value.raw;
+  if (type === 'age') return value.raw;
+  return value.raw;
+}
+
+function valuesDiffer(type, a, b) {
+  switch (type) {
+    case 'date':
+      return a.precision === b.precision && a.iso !== b.iso;
+    case 'money':
+      return a.currency === b.currency && Math.abs(a.amount - b.amount) / Math.max(a.amount, b.amount, 1) > 0.005;
+    case 'age':
+      return (a.max !== null && b.max !== null && a.max !== b.max) || (a.min !== null && b.min !== null && a.min !== b.min);
+    case 'percent':
+      return (a.scale || 'pct') === (b.scale || 'pct') && a.value !== b.value;
+    default:
+      return false;
+  }
+}
+
+// Years a claim refers to: stated in the sentence, otherwise the years in the
+// source's heading (e.g. "Scholarship 2026-27"), otherwise none.
+function contextYears(claim, source) {
+  const own = findYears(claim.text);
+  if (own.length) return { years: own, fromHeading: false };
+  const heading = (source?.text || '').slice(0, 200).split('\n')[0];
+  return { years: findYears(`${source?.title || ''} ${heading}`), fromHeading: true };
+}
+
+function classify(type, claimA, claimB, valueA, valueB, srcA, srcB) {
+  const reasons = [];
+  let classification = 'possible_conflict';
+
+  if (type === 'date') {
+    const yA = Number(valueA.iso.slice(0, 4));
+    const yB = Number(valueB.iso.slice(0, 4));
+    if (yA !== yB) {
+      classification = 'different_cycle';
+      reasons.push(`The dates fall in different years (${yA} and ${yB}), so the sources may describe different application cycles.`);
+    }
+    if (valueA.ambiguous || valueB.ambiguous) reasons.push('At least one date is written in a numeric format (such as 05/06/2025) that can be read day-first or month-first.');
+  } else {
+    const a = contextYears(claimA, srcA);
+    const b = contextYears(claimB, srcB);
+    if (a.years.length && b.years.length && !a.years.some((y) => b.years.includes(y))) {
+      classification = 'different_cycle';
+      const how = a.fromHeading || b.fromHeading ? ' (judged partly from the source headings)' : '';
+      reasons.push(`The statements refer to different years${how}: ${a.years.join(', ')} vs ${b.years.join(', ')}.`);
+    }
+  }
+
+  if (type === 'money') {
+    const pA = periodOf(claimA.text);
+    const pB = periodOf(claimB.text);
+    if (pA.length && pB.length && !pA.some((p) => pB.includes(p))) {
+      classification = 'unit_difference';
+      reasons.push(`One figure appears to be ${pA.join('/')} and the other ${pB.join('/')}.`);
+    }
+  }
+
+  const cA = categoriesOf(claimA.text);
+  const cB = categoriesOf(claimB.text);
+  if ((cA.length || cB.length) && cA.join() !== cB.join()) {
+    if (classification === 'possible_conflict') classification = 'scope_difference';
+    reasons.push(`The statements may apply to different groups (${cA.join(', ') || 'unspecified'} vs ${cB.join(', ') || 'unspecified'}).`);
+  }
+
+  reasons.push('One of the sources may be outdated, unofficial, or describe a different scheme or edition.');
+  return { classification, reasons };
+}
+
+/**
+ * Compares claims that state a single comparable value for the same facet in
+ * two different sources. Only explicit, differing values are reported, and each
+ * is classified cautiously: a difference is not treated as proof of a conflict.
+ */
+export function detectContradictions({ claims, sourcesById, facetKeys }) {
+  const findings = [];
+  const seenPairs = new Set();
+
+  for (const facet of COMPARABLE.filter((f) => facetKeys.includes(f))) {
+    const type = FACETS[facet].valueType;
+    const usable = claims
+      .filter((c) => c.facets.includes(facet) && c.values[type]?.length === 1)
+      .filter((c) => (type === 'date' ? c.values.date[0].precision === 'day' : true));
+
+    const pairs = [];
+    for (let i = 0; i < usable.length; i += 1) {
+      for (let j = i + 1; j < usable.length; j += 1) {
+        const a = usable[i];
+        const b = usable[j];
+        if (a.sourceId === b.sourceId) continue;
+        const va = a.values[type][0];
+        const vb = b.values[type][0];
+        if (!valuesDiffer(type, va, vb)) continue;
+        // Skip the pair if these two sources agree elsewhere on one of these values.
+        const agreeing = usable.some(
+          (c) => c.sourceId === b.sourceId && c.id !== b.id && !valuesDiffer(type, va, c.values[type][0]),
+        );
+        if (agreeing) continue;
+        pairs.push({ a, b, va, vb, score: a.relevance + b.relevance });
+      }
+    }
+
+    pairs.sort((x, y) => y.score - x.score);
+    for (const { a, b, va, vb } of pairs) {
+      const key = `${facet}|${[a.sourceId, b.sourceId].sort().join('|')}`;
+      if (seenPairs.has(key)) continue;
+      seenPairs.add(key);
+
+      const srcA = sourcesById[a.sourceId];
+      const srcB = sourcesById[b.sourceId];
+      const { classification, reasons } = classify(type, a, b, va, vb, srcA, srcB);
+      findings.push({
+        id: `con_${facet}_${findings.length + 1}`,
+        facet,
+        subject: FACETS[facet].label,
+        classification,
+        claimA: { claimId: a.id, sourceId: a.sourceId, text: a.text, value: formatValue(type, va), sourceDate: srcA?.dateInfo?.best || null },
+        claimB: { claimId: b.id, sourceId: b.sourceId, text: b.text, value: formatValue(type, vb), sourceDate: srcB?.dateInfo?.best || null },
+        explanation:
+          classification === 'possible_conflict'
+            ? `The two sources state different values for ${FACETS[facet].label.toLowerCase()} (${formatValue(type, va)} vs ${formatValue(type, vb)}), and no obvious difference in scope was detected.`
+            : `The two sources state different values for ${FACETS[facet].label.toLowerCase()} (${formatValue(type, va)} vs ${formatValue(type, vb)}), but this may be explained by a difference in scope rather than a true contradiction.`,
+        possibleReasons: reasons,
+        recommendation: 'Check the issuing organisation’s official, most recently updated page to see which value currently applies.',
+      });
+      if (findings.length >= MAX_FINDINGS) return findings;
+    }
+  }
+  const order = { possible_conflict: 0, scope_difference: 1, unit_difference: 2, different_cycle: 3 };
+  return findings.sort((x, y) => order[x.classification] - order[y.classification]);
+}
