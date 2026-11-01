@@ -1,7 +1,14 @@
+import { useEffect, useState } from 'react';
+
+const EMAIL = 'riteshkumar90359@gmail.com';
+
 const CONTACTS = [
   {
-    label: 'Email Ritesh Kumar',
-    href: 'mailto:riteshkumar90359@gmail.com',
+    // Opens the visitor's mail app. Computers without a default mail app ignore
+    // mailto: links, so the address is also copied as a fallback.
+    label: `Email Ritesh Kumar (${EMAIL})`,
+    href: `mailto:${EMAIL}`,
+    copy: EMAIL,
     viewBox: '0 0 24 24',
     icon: (
       <path
@@ -40,28 +47,46 @@ const CONTACTS = [
 
 /** Contact icon links for the footer. Each has an accessible name and a tooltip. */
 export default function ContactLinks() {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return undefined;
+    const timer = setTimeout(() => setCopied(false), 2500);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
+  const copyAddress = (text) => {
+    // The link still opens the mail app; copying covers computers that have none set up.
+    navigator.clipboard?.writeText(text).then(() => setCopied(true), () => {});
+  };
+
   return (
-    <ul className="contact-links" aria-label="Contact">
-      {CONTACTS.map(({ label, href, viewBox, icon }) => {
-        const external = href.startsWith('http');
-        return (
-          <li key={href}>
-            <a
-              href={href}
-              title={label}
-              {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-            >
-              <svg viewBox={viewBox} width="18" height="18" aria-hidden="true" focusable="false">
-                {icon}
-              </svg>
-              <span className="visually-hidden">
-                {label}
-                {external ? ' (opens in a new tab)' : ''}
-              </span>
-            </a>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="contact">
+      <ul className="contact-links" aria-label="Contact">
+        {CONTACTS.map(({ label, href, viewBox, icon, copy }) => {
+          const external = href.startsWith('http');
+          return (
+            <li key={href}>
+              <a
+                href={href}
+                title={label}
+                onClick={copy ? () => copyAddress(copy) : undefined}
+                {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+              >
+                <svg viewBox={viewBox} width="18" height="18" aria-hidden="true" focusable="false">
+                  {icon}
+                </svg>
+                <span className="visually-hidden">
+                  {label}
+                  {external ? ' (opens in a new tab)' : ''}
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+      <span className="contact-status small" role="status">
+        {copied ? 'Email address copied' : ''}
+      </span>
+    </div>
   );
 }
