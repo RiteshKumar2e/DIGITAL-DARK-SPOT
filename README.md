@@ -8,8 +8,6 @@
 
 An evidence-first research platform that reviews the sources you collect and shows **what is missing**, **what conflicts**, and **what may be outdated**, with the evidence behind every finding and a checklist of what to verify next.
 
-Built for the **Shinchan Online Hackathon 2026** · Problem statement: *Digital Dark Spot: AI-Assisted Information Gap Detection Platform*
-
 ![React](https://img.shields.io/badge/React-19-20232a?logo=react)
 ![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)
@@ -379,5 +377,5 @@ Hindi and regional-language extraction, OCR for scanned PDFs, issuer detection b
 ---
 
 <div align="center">
-<sub>Digital Dark Spot · Shinchan Online Hackathon 2026</sub>
+<sub>Digital Dark Spot</sub>
 </div>
