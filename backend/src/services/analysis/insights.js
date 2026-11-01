@@ -148,7 +148,7 @@ export function buildTimeline({ sources, claims, now }) {
  * An explained assessment of the investigation itself. Deliberately not a
  * single score: each factor is shown with the reason it matters.
  */
-export function qualityReport({ allSources, reviewed, coverage, gaps, freshness, staleMonths, now, ai }) {
+export function qualityReport({ allSources, reviewed, coverage, gaps, freshness, staleMonths, now, ai, method = 'rules' }) {
   const factors = [];
   const add = (key, label, value, ok, explanation) => factors.push({ key, label, value, ok, explanation });
 
@@ -190,8 +190,15 @@ export function qualityReport({ allSources, reviewed, coverage, gaps, freshness,
   const warnings = freshness.filter((f) => f.severity === 'high').length;
   add('freshness', 'High-severity freshness warnings', String(warnings), warnings === 0, 'Passed deadlines or sources well beyond the freshness threshold.');
 
-  add('ai', 'AI review', ai.status === 'ok' ? 'Used (labelled)' : ai.status === 'not_configured' ? 'Not configured' : 'Unavailable', true,
-    'AI output, when present, is labelled and never counted as evidence.');
+  if (method === 'ai') {
+    add('method', 'Analysis method', 'AI, quotes verified', true,
+      `Gaps and conflicts were found by ${ai.model}. Every quote they cite was matched word for word in the source; findings whose quote was not found were dropped.`);
+  } else {
+    add('method', 'Analysis method', ai.status === 'not_configured' ? 'Rule-based (AI not configured)' : 'Rule-based fallback', ai.status === 'not_configured',
+      ai.status === 'not_configured'
+        ? 'No AI provider is configured, so the keyword rule engine produced the findings.'
+        : `AI analysis failed: ${ai.message} The keyword rule engine produced the findings instead, so information phrased differently may have been missed.`);
+  }
 
   return { factors, attention: factors.filter((f) => !f.ok).length };
 }

@@ -2,7 +2,6 @@ import { useEvidence } from './EvidenceContext.jsx';
 import { ClaimQuote, Quote, SourceRef } from './Evidence.jsx';
 import { EmptyState, Tag } from '../ui.jsx';
 import {
-  AI_ASSESSMENT,
   CONTRADICTION_CLASS,
   FRESHNESS_SEVERITY,
   GAP_KIND,
@@ -12,12 +11,15 @@ import {
 import { formatDate, formatNumber } from '../../utils/format.js';
 import Timeline from './Timeline.jsx';
 
-export function GapList({ gaps, aiGaps }) {
+/** Marks findings produced by the AI; rule-engine findings carry no origin. */
+const AiFindingTag = ({ item }) => (item.origin === 'ai' ? <Tag tone="ai">AI finding, quote verified</Tag> : null);
+
+export function GapList({ gaps }) {
   const { sourcesById } = useEvidence();
   return (
     <div className="stack">
       {gaps.length === 0 ? (
-        <EmptyState title="No potential gaps detected by the rule checks">
+        <EmptyState title="No potential gaps detected">
           Every kind of information checked for this research type was found in at least one source. This does not guarantee
           completeness. Review the coverage table on the Overview tab.
         </EmptyState>
@@ -33,6 +35,7 @@ export function GapList({ gaps, aiGaps }) {
                   <Tag plain title={gap.scope.note}>
                     {SCOPE_LEVEL[gap.scope.level]}
                   </Tag>
+                  <AiFindingTag item={gap} />
                 </div>
                 <h3 className="finding-title">{gap.title}</h3>
                 <p>{gap.detail}</p>
@@ -59,10 +62,16 @@ export function GapList({ gaps, aiGaps }) {
                       ))}{' '}
                       ({formatNumber(gap.scope.wordCount)} words in total).
                     </p>
-                    <p className="small">
-                      <strong>{gap.kind === 'question_term' ? 'Words looked for:' : 'Wording looked for:'}</strong>{' '}
-                      {gap.searchedFor.map((term) => `“${term}”`).join(', ')}
-                    </p>
+                    {gap.origin === 'ai' ? (
+                      <p className="small">
+                        <strong>How it was found:</strong> an AI model read the full text of each reviewed source.
+                      </p>
+                    ) : (
+                      <p className="small">
+                        <strong>{gap.kind === 'question_term' ? 'Words looked for:' : 'Wording looked for:'}</strong>{' '}
+                        {gap.searchedFor.map((term) => `“${term}”`).join(', ')}
+                      </p>
+                    )}
                     {gap.evidenceClaimIds.length > 0 && (
                       <div className="stack-sm">
                         <p className="small">
@@ -73,7 +82,7 @@ export function GapList({ gaps, aiGaps }) {
                         ))}
                       </div>
                     )}
-                    <p className="small muted">{gap.scope.note}</p>
+                    {gap.origin !== 'ai' && <p className="small muted">{gap.scope.note}</p>}
                     {Object.values(sourcesById).some((s) => s.status !== 'retrieved') && (
                       <p className="small muted">Sources that could not be retrieved were not searched.</p>
                     )}
@@ -84,32 +93,11 @@ export function GapList({ gaps, aiGaps }) {
           })}
         </ol>
       )}
-
-      {aiGaps?.length > 0 && (
-        <section className="ai-block" aria-labelledby="ai-gaps-heading">
-          <div className="row">
-            <h3 id="ai-gaps-heading">Further possible gaps suggested by AI</h3>
-            <Tag tone="ai">AI-generated, unverified</Tag>
-          </div>
-          <p className="small muted">These are suggestions from a language model based on the same sources. They are not backed by quoted evidence.</p>
-          <ul className="ai-list">
-            {aiGaps.map((gap) => (
-              <li key={gap.topic}>
-                <strong>{gap.topic}</strong>
-                {gap.whyItMatters && <p className="small">{gap.whyItMatters}</p>}
-                <p className="small">
-                  <span className="muted">Next step:</span> {gap.nextStep}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }
 
-export function ContradictionList({ items, aiReviews }) {
+export function ContradictionList({ items }) {
   const { claimsById } = useEvidence();
   if (!items.length) {
     return (
@@ -119,17 +107,16 @@ export function ContradictionList({ items, aiReviews }) {
       </EmptyState>
     );
   }
-  const reviews = Object.fromEntries((aiReviews || []).map((r) => [r.findingId, r]));
   return (
     <ol className="finding-list">
       {items.map((item) => {
         const cls = CONTRADICTION_CLASS[item.classification];
-        const review = reviews[item.id];
         return (
           <li key={item.id} id={`finding-${item.id}`} className="finding">
             <div className="row finding-tags">
               <Tag tone={cls.tone}>{cls.label}</Tag>
               <Tag plain>{item.subject}</Tag>
+              <AiFindingTag item={item} />
             </div>
             <h3 className="finding-title">
               {item.classification === 'list_difference'
@@ -160,12 +147,6 @@ export function ContradictionList({ items, aiReviews }) {
                 <dd>{item.recommendation}</dd>
               </div>
             </dl>
-            {review && (
-              <div className="ai-note">
-                <Tag tone="ai">{AI_ASSESSMENT[review.assessment]}</Tag>
-                {review.explanation && <p className="small">{review.explanation}</p>}
-              </div>
-            )}
           </li>
         );
       })}

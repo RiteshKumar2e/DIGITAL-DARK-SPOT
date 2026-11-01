@@ -64,8 +64,8 @@ export default function PrivacyPage() {
 
       <h2>AI processing</h2>
       <p>
-        If the operator has enabled AI review, your question, scope and the extracted source text (including text from uploaded PDFs) are sent
-        to Groq, Inc. for processing when you run an analysis. Each analysis shows whether AI review was used. Groq’s own terms and privacy policy apply to that
+        If the operator has enabled AI analysis, your question, scope and the extracted source text (including text from uploaded PDFs) are sent
+        to Groq, Inc. for processing every time you run an analysis. Each analysis shows whether the AI or the rule engine produced the findings. Groq’s own terms and privacy policy apply to that
         processing. [Operator to confirm the data processing terms with Groq: DRAFT.]
       </p>
 

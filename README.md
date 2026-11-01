@@ -12,7 +12,7 @@ An evidence-first research platform that reviews the sources you collect and sho
 ![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5-000000?logo=express)
-![Tests](https://img.shields.io/badge/backend%20tests-49%20passing-2e6a43)
+![Tests](https://img.shields.io/badge/backend%20tests-54%20passing-2e6a43)
 
 </div>
 
@@ -81,7 +81,7 @@ Digital Dark Spot turns a research question and a set of sources into an inspect
 | **Investigation quality report** | An explained factor list (sources reviewed, independent publishers, topics covered, critical gaps, single-source topics, official-domain sources, recent dates). Deliberately no single score. |
 | **Verification checklist** | Prioritised tasks with a reason, related finding, sources, and where to check. Ticking an item is labelled "marked done by you", never "verified". Users can add, reopen and delete their own items. |
 | **Report export** | Markdown download or printable HTML of the actual session, including sources, findings, quotes, checklist, AI labels and methodology. |
-| **Optional AI review** | With a Groq key: a summary, extra gap suggestions and a second opinion on conflicts. Labelled as AI, schema-validated, and every quote is checked word for word against the source. |
+| **AI-first analysis with rule fallback** | With a Groq key, the AI finds the gaps and contradictions and writes a short summary; every quote is checked word for word against the source. If the AI is unavailable or its output cannot be verified, the rule engine produces the findings, and the app says so. |
 | **Guided sample investigation** | `/demo`: a reproducible, offline-safe walkthrough on clearly labelled simulated sources, with a one-click reset. |
 
 ## Judge demo script
@@ -109,34 +109,37 @@ flowchart LR
     A[Question + type + scope] --> B[Add sources<br/>URL · PDF · text · search]
     B --> C[Safe retrieval<br/>SSRF-protected, size and time limits]
     C --> D[Extraction<br/>verbatim sentences, dates,<br/>amounts, documents, pages]
-    D --> E[Gaps]
-    D --> F[Contradictions]
-    D --> G[Freshness + timeline]
-    E & F & G --> H[Coverage matrix +<br/>quality report]
+    D --> K[1. AI analysis, Groq<br/>gaps + contradictions]
+    K --> V{Quotes verified<br/>word for word?}
+    V -- yes --> EF[Gaps + contradictions]
+    V -- "no / AI failed /<br/>not configured" --> R[2. Rule engine fallback<br/>gaps + contradictions]
+    R --> EF
+    D --> G[Freshness + timeline<br/>always computed from dates]
+    EF & G --> H[Coverage matrix +<br/>quality report]
     H --> I[Prioritised checklist]
     I --> J[Report export]
-    D -. optional .-> K[AI review, Groq<br/>schema + quote validation]
-    K -.-> H
 ```
+
+**AI first, rules as fallback.** When `GROQ_API_KEY` is set, a language model reads the full text of every source and reports gaps and contradictions. Each finding must cite quotes that appear word for word in the cited source, and any number in a stated value must appear in that quote; anything else is dropped. If the AI is not configured, fails (error, timeout, rate limit), returns malformed JSON, or returns nothing that survives verification, the keyword rule engine produces the findings instead. The Overview tab and the report always state which method was used and why. Freshness, dates, the coverage matrix and the timeline are always computed directly from the text, because they depend on exact date arithmetic.
 
 | Stage | Code | Details |
 | --- | --- | --- |
 | Retrieval | `backend/src/services/fetcher.service.js`, `pdf.service.js` | DNS-pinned connections, every redirect re-validated, 12 s timeout, 3 MB HTML / 10 MB PDF limits, content-type checks. Cookie walls, JavaScript notices and bot checks are reported as not retrieved. PDFs: magic-byte check, 200-page limit, 20 s timeout, no OCR. |
 | Extraction | `analysis/claims.js` | Sentences tagged by topic; dates, money (including lakh and crore), ages and percentages parsed; PDF page numbers attached. Text is never paraphrased. |
-| Gaps | `analysis/gaps.js`, `analysis/insights.js` | Profile topics with importance and verification steps; scope checks for years and places; question-coverage check that ignores generic words. |
-| Contradictions | `analysis/contradictions.js` | Compared only when each sentence states one explicit value. Cycle, unit and category differences are classified separately; ambiguous dates are inconclusive and different currencies are not comparable. Document lists are compared by document type. |
+| AI analysis (primary) | `services/ai.service.js` | Untrusted source text delimited from instructions; JSON output validated; every quote located in its source and mapped to the full sentence (with PDF page); values must match their quote; findings that fail are dropped. |
+| Gaps (fallback) | `analysis/gaps.js`, `analysis/insights.js` | Profile topics with importance and verification steps; scope checks for years and places; question-coverage check that ignores generic words. |
+| Contradictions (fallback) | `analysis/contradictions.js` | Compared only when each sentence states one explicit value. Cycle, unit and category differences are classified separately; ambiguous dates are inconclusive and different currencies are not comparable. Document lists are compared by document type. |
 | Freshness | `analysis/freshness.js` | Declared dates only; profile thresholds; passed deadlines; inferred years kept separate from publication dates. |
 | Insights | `analysis/insights.js` | Coverage matrix statuses, timeline, investigation-quality factors. |
 | Checklist | `analysis/checklist.js` | Prioritised tasks with a destination (official-domain source in the session, or a suggested search); completion survives re-analysis. |
-| AI review | `services/ai.service.js` | Optional; delimited untrusted source text; strict output validation; unverifiable quotes discarded. |
 | Report | `services/report.service.js` | Markdown and escaped printable HTML of the actual session. |
 
 ## What makes it different
 
 - **It reports absence.** The core output is what the sources *don't* say, relative to what your type of decision needs and the scope you set.
-- **Deterministic first, AI second.** The rule engine works without any key, and every finding traces to a sentence or a stated search scope.
+- **AI first, with a safety net.** The AI reads the full text, so it catches information phrased in ways keyword rules miss. If it fails, the rule engine still delivers findings, so an analysis never comes back empty because of a provider problem.
+- **AI output is checked against the sources.** Every quote must exist word for word in the cited source, or the finding is dropped. Every finding traces to a sentence.
 - **Careful about conflicts.** A different deadline in a different year is *"may be a different cycle"*, not *"contradiction"*.
-- **AI output is checked against the sources.** Quotes the model returns must exist in the retrieved text, or they are dropped.
 - **Honest about coverage.** Sources reviewed, words read, failed retrievals, publisher diversity and official-domain presence are shown, not hidden behind a score.
 - **Reproducible.** Each analysis records the engine version and a content hash and retrieval time per source, so a changed source is distinguishable from a changed analysis.
 
@@ -146,7 +149,7 @@ flowchart LR
 | --- | --- |
 | **Source text** | Copied word for word from a retrieved source (with page number for PDFs). |
 | **Search snippet** | Returned by the search provider; not evidence until the page is added and retrieved. |
-| **AI-generated, unverified** | Written by a language model (only when AI review is enabled). |
+| **AI finding, quote verified** | Found by the AI; its quotes were matched word for word in the source. The judgement itself is not verified. |
 | **Quote verified in source** | An AI key point whose quote was found word for word in the source. |
 | **Simulated** | Demonstration content that is not real. |
 | **Official / Academic domain** | The domain is reserved for such publishers. Shows the publisher type only, not currency or correctness. |
@@ -168,7 +171,7 @@ flowchart TB
     end
     W[(Public websites)]
     T[(Tavily / Serper<br/>optional)]
-    G[(Groq<br/>optional)]
+    G[(Groq<br/>primary analysis)]
 
     UI -- REST / JSON --> R --> S --> DB
     S -- safe fetch --> W
@@ -215,7 +218,7 @@ cp .env.example .env
 npm run dev
 ```
 
-On start, the backend prints whether AI review and web search are enabled. Open http://localhost:5173.
+On start, the backend prints whether AI analysis and web search are enabled. Open http://localhost:5173.
 
 For deployment, see [Deployment](#deployment).
 
@@ -232,8 +235,10 @@ For deployment, see [Deployment](#deployment).
 | `SESSION_RETENTION_DAYS` | `30` | Sessions unchanged this long are deleted |
 | `DATA_FILE` | `backend/data/sessions.json` | Where sessions are stored. In production, point it at a persistent disk |
 | `MAX_PDF_MB` | `10` | PDF upload and download limit |
-| `GROQ_API_KEY` | *(empty)* | Enables the optional AI review |
+| `GROQ_API_KEY` | *(empty)* | Enables AI analysis (primary). Without it, the rule engine produces the findings |
 | `GROQ_MODEL` | `openai/gpt-oss-120b` | Groq model with JSON mode |
+| `GROQ_MAX_INPUT_CHARS` | `12000` | Source text sent per analysis, shared across sources |
+| `GROQ_MAX_OUTPUT_TOKENS` | `3500` | Room for the AI's findings. Too low and the reply is cut off, so the rule engine takes over |
 | `SEARCH_PROVIDER` | *(empty)* | `tavily` or `serper`; empty uses whichever key is set |
 | `TAVILY_API_KEY` | *(empty)* | Key from tavily.com |
 | `SERPER_API_KEY` | *(empty)* | Key from serper.dev (Google results) |
@@ -251,12 +256,14 @@ Public values only; everything here is bundled into the browser.
 
 ### Enabling optional integrations
 
-- **AI review:** set `GROQ_API_KEY` and restart the backend.
+- **AI analysis:** set `GROQ_API_KEY` and restart the backend. On Groq's free tier (8,000 tokens per minute), two analyses within the same minute can hit the rate limit; the second then falls back to the rule engine and says so.
 - **Web search:** set `SEARCH_PROVIDER=tavily` with `TAVILY_API_KEY`, or `SEARCH_PROVIDER=serper` with `SERPER_API_KEY`, then restart. Both providers offer free tiers (check their current limits). Without a key, the Search tab says so and manual sources keep working. No results are ever simulated.
 
 ## Deployment
 
-The app is two independent services: a static frontend and a Node.js API. **It has not been deployed by the authors yet; the steps below are a checklist, not a record of a live deployment.**
+The app is two independent services: a static frontend and a Node.js API.
+
+**Live:** frontend https://digital-dark-spot-tau.vercel.app (Vercel), API https://digital-dark-spot.onrender.com (Render, free plan). On 1 November 2026 the deployed pair was checked end to end: `/api/health` reported AI and search configured, CORS allowed the Vercel origin, and two uploaded PDFs were analysed, producing a gap, conflicts and a freshness warning. On Render's free plan there is no persistent disk, so sessions are lost when the service restarts or redeploys, and the first request after idle time is slow.
 
 ### Backend (any Node.js host, for example Render, Railway or a VPS)
 
@@ -346,23 +353,27 @@ CHROME_PATH="C:/Program Files/Google/Chrome/Application/chrome.exe" npm run test
 
 | Check | Result |
 | --- | --- |
-| `npm test` (backend) | 49 passed, 0 failed |
-| `npm run eval` | 18 cases · expected findings detected 19/19 · forbidden findings produced 0/18 · invalid evidence references 0 |
+| `npm test` (backend) | 54 passed, 0 failed |
+| `npm run eval` | 18 cases · expected findings detected 19/19 · forbidden findings produced 0/18 · invalid evidence references 0 (rule engine, which is the fallback) |
 | `npm run build` (frontend) | Succeeds |
 | `npm run test:e2e` | Full journey passes, including a live Tavily search when a key is configured, and deletes the sessions it created. It depends on live websites and providers, so a slow or failing network makes it fail (as one run did on 31 October 2026, when Wikipedia was unreachable from the test machine; the next run passed). No horizontal overflow at 320, 375, 390, 768, 1024 and 1440 px; no console errors. |
 | `npm audit` (both apps) | 0 vulnerabilities |
 
-The tests cover the health endpoint, input validation and field errors, oversized bodies, unsafe URL rejection, duplicate content, short text, PDF upload with page numbers, non-PDF and scanned-PDF handling, the analysis workflow, checklist updates, Markdown and HTML export (including XSS escaping), session deletion, search not configured, the read-only sample, JSON 404s, corrupted-store recovery, AI output validation (malformed output, invented quotes, unknown sources), prompt-injection-like source text, rate limiting, redirect hops to private and metadata addresses (with a fake transport), redirect loops, HTTP error mapping, oversized and empty responses, DNS checks at connection time, cookie-wall detection, storage write failures, concurrent writes, repeated analysis, verbatim evidence references, damaged, truncated and over-limit PDFs, retention purge, and session ids being kept out of logs. Tests that write data run against a temporary file and refuse to start if they would touch the real data store.
+The tests cover the health endpoint, input validation and field errors, oversized bodies, unsafe URL rejection, duplicate content, short text, PDF upload with page numbers, non-PDF and scanned-PDF handling, the analysis workflow, checklist updates, Markdown and HTML export (including XSS escaping), session deletion, search not configured, the read-only sample, JSON 404s, corrupted-store recovery, AI-first analysis with a stand-in AI client (verified AI findings used; rule engine taking over when the AI errors, returns non-JSON, returns only unverifiable findings, or is not configured), AI output validation (malformed output, invented quotes, invented values, unknown sources, same-source "conflicts"), prompt-injection-like source text, rate limiting, redirect hops to private and metadata addresses (with a fake transport), redirect loops, HTTP error mapping, oversized and empty responses, DNS checks at connection time, cookie-wall detection, storage write failures, concurrent writes, repeated analysis, verbatim evidence references, damaged, truncated and over-limit PDFs, retention purge, and session ids being kept out of logs. Tests that write data run against a temporary file and refuse to start if they would touch the real data store.
 
 The evaluation fixtures (`backend/test/fixtures/eval-cases.js`) are fixed texts covering conflicting deadlines, different application years, missing renewal conditions, conflicting document lists, an official source next to an older secondary source, an undated page, an inaccessible URL, a question with no relevant coverage, consistent sources (no false conflict), a question year not covered, different currencies, an ambiguous numeric date, different applicant categories, alternative wording, a future publication date, a failed source and insufficient evidence. **These measure rule behaviour on a small curated set; they are not an accuracy figure for real-world pages.** The demo session and these fixtures use **simulated** text; the checks below used **real** public sources.
 
 **Manual run on real public sources (31 October 2026).** One session with Wikipedia, two news and education pages found through Tavily search, a deliberately broken link and two pasted texts: all retrievals behaved as expected (the broken link was reported as not retrieved with "HTTP 404"; the duplicate URL was rejected), and 42 of 42 evidence quotes were found verbatim in their sources. A real 15-page research PDF (arXiv 1706.03762) uploaded through the app produced claims with page numbers on all 16 extracted claims. Downloading that PDF by URL on this development machine exceeded the 30-second download limit because the remote server was slow (about 41 KB/s with plain curl); the app reported it as a timeout and suggested uploading the file. With deliberately invalid Groq and Tavily keys, the analysis still completed with rule-based findings and both failures were reported clearly. These are observations from one run, not repeatable automated tests.
 
-Not covered by automated unit tests: live web retrieval and live Groq and search-provider calls, which depend on external services. Live Tavily search and Groq review were exercised manually and in the browser check with keys configured; Serper has not been tested against the live service.
+**AI-first run with the live Groq model (1 November 2026).** The two fictional demo PDFs were analysed locally with `openai/gpt-oss-120b`: the method was reported as AI, the AI found the missing renewal rules and the deadline, amount and income-limit conflicts with verified quotes, and dropped one statement whose quote was not in the source. Unlike the rule engine in the same scenario, it did not report the difference between the two document lists. In the browser check, the second analysis within a minute fell back to the rule engine, most likely because of the free tier's per-minute token limit.
+
+Not covered by automated unit tests: live web retrieval and live Groq and search-provider calls, which depend on external services; the AI path is tested with a stand-in client. Live Tavily search and Groq analysis were exercised manually and in the browser check with keys configured; Serper has not been tested against the live service.
 
 ## Known limitations
 
-- **Keyword-based topic detection.** Synonyms are included, but information phrased very differently can be missed; every gap states its search scope.
+- **AI findings are not deterministic.** Two runs on the same sources can differ slightly, and the AI can miss something the rules would catch (and the reverse). Quotes are verified; the AI's judgement is not.
+- **AI needs a provider.** Analyses send source text to Groq; on the free tier, back-to-back analyses can hit the per-minute limit and fall back to the rule engine.
+- **Keyword-based fallback.** When the rule engine is used, information phrased very differently can be missed; every rule-based gap states its search scope.
 - **Search requires a provider key.** Without one, sources are added manually.
 - **No OCR.** Scanned PDFs without a text layer are reported as unreadable.
 - **JavaScript-rendered pages** may yield too little text and are reported as not retrieved.

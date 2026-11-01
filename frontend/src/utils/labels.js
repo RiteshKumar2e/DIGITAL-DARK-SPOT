@@ -37,12 +37,6 @@ export const CONTRADICTION_CLASS = {
   not_comparable: { label: 'Not directly comparable', tone: 'info' },
 };
 
-export const AI_ASSESSMENT = {
-  likely_conflict: 'AI reading: likely a real conflict',
-  likely_scope_difference: 'AI reading: likely a difference in scope',
-  unclear: 'AI reading: unclear from the text',
-};
-
 export const FRESHNESS_SEVERITY = {
   high: { label: 'Needs checking', tone: 'high' },
   medium: { label: 'Possibly outdated', tone: 'medium' },

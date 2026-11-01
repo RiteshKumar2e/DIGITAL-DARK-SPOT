@@ -20,7 +20,7 @@ const app = createApp();
 const server = app.listen(config.port, () => {
   console.log(`[api] Digital Dark Spot API listening on http://localhost:${config.port}`);
   console.log(`[api] allowed origins: ${config.allowedOrigins.join(', ')}`);
-  console.log(`[api] AI review: ${aiConfigured() ? `enabled (Groq, ${config.ai.model})` : 'not configured (rule-based analysis only)'}`);
+  console.log(`[api] AI analysis: ${aiConfigured() ? `enabled (Groq, ${config.ai.model}); rule engine is the fallback` : 'not configured (rule engine only)'}`);
   const search = searchStatus();
   console.log(`[api] Web search: ${search.configured ? `enabled (${search.provider})` : 'not configured (manual sources only)'}`);
 });

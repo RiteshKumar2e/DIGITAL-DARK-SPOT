@@ -34,24 +34,38 @@ export default function MethodPage() {
         are read from those sentences. Nothing is paraphrased at this stage.
       </p>
 
-      <h2>3. Potential gaps</h2>
+      <h2>3. AI analysis first, rule engine as fallback</h2>
       <p>
-        For each research type there is a list of information people usually need. If no reviewed source contains wording about
-        a topic, it is reported as <em>“not found in the sources reviewed”</em>. Each gap shows the sources searched and the
-        wording looked for. If you set a time period or place in the research scope, the sources are also checked for it, so a
-        question about 2027 answered only by 2025 pages is flagged. A gap is a reason to look further, not proof that the information does not exist: the sources may
-        use different words, or it may be on a page you have not added.
+        When the server has an AI provider configured (Groq), a language model reads the full text of every reviewed source and
+        reports gaps and conflicting values, each with quotes. Every quote is then checked against the source: it must appear{' '}
+        <strong>word for word</strong> in the source it cites, and any number in a stated value must appear in that quote.
+        Anything that fails the check is dropped. Text inside sources is treated as data, never as instructions. These findings are
+        labelled <Tag tone="ai">AI finding, quote verified</Tag>.
+      </p>
+      <p>
+        If the AI is not configured, fails (an error, a timeout or a rate limit), returns a malformed reply, or returns nothing that
+        can be matched to the source text, a keyword rule engine produces the findings instead. The Overview tab always says which
+        one was used, and why. The rule engine gives the same result every time; the AI can differ slightly between runs.
       </p>
 
-      <h2>4. Conflicting values</h2>
+      <h2>4. Potential gaps</h2>
       <p>
-        When two sources each state a single, explicit value for the same item (for example a deadline or an amount) and the
-        values differ, the pair is shown side by side with both quotes. Differences that are probably explained by a different
-        year or cycle, unit (monthly vs yearly) or group of people are labelled as such, rather than as contradictions.
+        For each research type there is a list of information people usually need. If no reviewed source covers a topic, it is
+        reported as <em>“not found in the sources reviewed”</em>. The rule engine also shows the wording it looked for, and checks a
+        time period or place you set in the research scope, so a question about 2027 answered only by 2025 pages is flagged. A gap
+        is a reason to look further, not proof that the information does not exist: it may be on a page you have not added.
       </p>
 
-      <h2>5. Freshness</h2>
+      <h2>5. Conflicting values</h2>
       <p>
+        When two sources state different values for the same item (for example a deadline or an amount), the pair is shown side by
+        side with both quotes. Differences that are probably explained by a different year or cycle, unit (monthly vs yearly) or
+        group of people are labelled as such, rather than as contradictions.
+      </p>
+
+      <h2>6. Freshness</h2>
+      <p>
+        Freshness is always computed directly from the text, not by the AI, because it depends on exact date arithmetic.
         Publication and update dates are taken only from what the source declares: page metadata, structured data, or PDF
         document properties. They are kept separate from dates mentioned in the text, years inferred from it, and the retrieval
         time. The freshness threshold depends on the research type: 12 months for scholarships, jobs and public services, 24 for
@@ -60,7 +74,7 @@ export default function MethodPage() {
         does not mean it is outdated.
       </p>
 
-      <h2>6. Investigation quality and official domains</h2>
+      <h2>7. Investigation quality and official domains</h2>
       <p>
         The overview lists factors that affect how far the findings can be relied on: how many sources were reviewed, how many
         independent publishers, topics covered, critical gaps, single-source topics, recent dates and official-domain sources. There
@@ -69,18 +83,10 @@ export default function MethodPage() {
         current or correct.
       </p>
 
-      <h2>7. Optional AI review</h2>
-      <p>
-        If the server operator has configured an AI provider (Groq), the sources are also sent to a language model for a short
-        summary, further gap suggestions and a second opinion on conflicts. Text inside sources is treated as data, not as
-        instructions. Any key point the model returns must include a quote, and quotes that cannot be found word for word in the
-        source are discarded. AI output is always labelled <Tag tone="ai">AI-generated</Tag>.
-      </p>
-
       <h2>Labels you will see</h2>
       <ul className="label-legend">
         <li><Tag tone="source">Source text</Tag> A sentence copied from a retrieved source.</li>
-        <li><Tag tone="ai">AI-generated, unverified</Tag> Written by a language model. Check it yourself.</li>
+        <li><Tag tone="ai">AI finding, quote verified</Tag> Found by a language model; its quotes were matched in the source, but its judgement is not verified.</li>
         <li><Tag tone="sample">Simulated</Tag> Demonstration content that is not real.</li>
         <li><Tag tone="high">Possible contradiction</Tag> Different explicit values with no obvious difference in scope.</li>
         <li><Tag tone="info">Date not established</Tag> The source declares no publication or update date.</li>

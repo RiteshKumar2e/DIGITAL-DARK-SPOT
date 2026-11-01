@@ -27,7 +27,7 @@ const CAPABILITIES = [
   ['Freshness warnings', 'Old publication dates, passed deadlines and undated pages are flagged, and the reason for each warning is stated.'],
   ['Source-linked evidence', 'Every quote opens the original text with the passage highlighted, a page number for PDFs, and a link to the live page.'],
   ['Prioritised verification and export', 'High-priority items cover blockers such as eligibility, deadlines and conflicts. The full report exports as Markdown or a printable page.'],
-  ['Transparent uncertainty', 'Evidence strength reflects how much text was actually reviewed. AI suggestions, when enabled, are labelled and quote-checked.'],
+  ['AI first, rules as backup', 'An AI model reads every source first, and each quote it cites must match the source word for word. If the AI fails, a rule engine takes over.'],
 ];
 
 export default function HomePage() {
@@ -189,7 +189,7 @@ export default function HomePage() {
             <p>Every label in the workspace tells you where a piece of text came from:</p>
             <ul className="label-legend">
               <li><Tag tone="source">Source text</Tag> Copied word for word from a retrieved source.</li>
-              <li><Tag tone="ai">AI-generated, unverified</Tag> Written by a language model, when AI review is enabled.</li>
+              <li><Tag tone="ai">AI finding, quote verified</Tag> Found by a language model; its quotes were matched in the source.</li>
               <li><Tag tone="sample">Simulated</Tag> Demonstration content that is not real.</li>
               <li><Tag tone="info">Date not established</Tag> The source declares no date, so its currency is unknown.</li>
             </ul>

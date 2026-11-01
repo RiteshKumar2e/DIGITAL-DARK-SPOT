@@ -63,8 +63,8 @@ export default function Findings({ session, activeTab, setActiveTab, onChecklist
 
       <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} className="tab-panel" tabIndex={0}>
         {activeTab === 'overview' && <Overview analysis={analysis} onGoToFinding={onGoToFinding} />}
-        {activeTab === 'gaps' && <GapList gaps={analysis.gaps} aiGaps={analysis.ai?.additionalGaps} />}
-        {activeTab === 'conflicts' && <ContradictionList items={analysis.contradictions} aiReviews={analysis.ai?.contradictionReviews} />}
+        {activeTab === 'gaps' && <GapList gaps={analysis.gaps} />}
+        {activeTab === 'conflicts' && <ContradictionList items={analysis.contradictions} />}
         {activeTab === 'freshness' && (
           <FreshnessList items={analysis.freshness} timeline={analysis.timeline} thresholdMonths={analysis.freshnessThresholdMonths || 12} />
         )}

@@ -40,6 +40,9 @@ export function buildMarkdown(session) {
   push(
     `**Research type:** ${analysis.profile.label}  `,
     `**Analysis run:** ${analysis.runAt} (engine ${analysis.engine})  `,
+    `**Method:** ${analysis.method === 'ai'
+      ? 'AI analysis; every quoted passage was checked word for word against the source'
+      : `rule-based${analysis.ai?.status === 'error' ? ` fallback (AI analysis failed: ${mdEscape(analysis.ai.message)})` : ' (AI not configured)'}`}  `,
     ...(session.analysisStale ? ['**Note:** sources or the question changed after this analysis; re-run it for current results.  '] : []),
     `**Report generated:** ${new Date().toISOString()}  `,
     `**Evidence reviewed:** ${analysis.scope.sourceCount} of ${session.sources.length} sources, ${analysis.scope.wordCount} words`,
@@ -73,13 +76,14 @@ export function buildMarkdown(session) {
   }
   for (const id of analysis.scope.notReviewedSourceIds) unknown.push(`- Source ${labels[id]} could not be retrieved, so its content is unknown`);
   for (const id of analysis.timeline?.undatedSourceIds || []) unknown.push(`- Publication date of ${labels[id]} not established`);
-  push(...(unknown.length ? unknown : ['- Nothing flagged by the rule checks within the reviewed sources.']), '');
+  push(...(unknown.length ? unknown : ['- Nothing flagged within the reviewed sources.']), '');
 
   push('## Potential information gaps', '');
-  if (!analysis.gaps.length) push('No potential gaps were detected by the rule checks within the reviewed sources.', '');
+  if (!analysis.gaps.length) push('No potential gaps were detected within the reviewed sources.', '');
   for (const g of analysis.gaps) {
     push(`### ${mdEscape(g.title)}`, '', `- Priority: ${g.importance}`, `- Why it matters: ${mdEscape(g.whyItMatters)}`, `- Next step: ${mdEscape(g.nextStep)}`,
-      `- Sources searched: ${g.reviewedSourceIds.map((id) => labels[id]).join(', ')}`, `- Looked for: ${g.searchedFor.map(mdEscape).join(', ')}`, '');
+      `- Sources searched: ${g.reviewedSourceIds.map((id) => labels[id]).join(', ')}`,
+      g.origin === 'ai' ? '- Found by: AI reading of the full source text' : `- Looked for: ${g.searchedFor.map(mdEscape).join(', ')}`, '');
     for (const id of g.evidenceClaimIds) if (claims[id]) push(quoteMd(claims[id].text), `> (${cite(claims[id])})`, '');
   }
 
@@ -111,17 +115,16 @@ export function buildMarkdown(session) {
   push('');
 
   if (analysis.ai?.status === 'ok') {
-    push('## AI-generated suggestions (unverified)', '', '_Written by a language model. Key points below kept only when their quote was found word for word in the source._', '');
+    push('## AI summary', '', '_Written by a language model. Key points are kept only when their quote was found word for word in the source._', '');
     if (analysis.ai.overview) push(mdEscape(analysis.ai.overview), '');
     for (const p of analysis.ai.keyPoints || []) push(`- ${mdEscape(p.statement)} (${labels[p.sourceId]}, quote: “${mdEscape(p.quote)}”)`);
-    for (const g of analysis.ai.additionalGaps || []) push(`- Possible gap: ${mdEscape(g.topic)}. ${mdEscape(g.nextStep)}`);
     push('');
   }
 
   push('## Method and limitations', '',
     '- Sources are retrieved on the server; pages behind logins, paywalls or bot protection are not read.',
-    '- Gap detection matches wording for each topic; information phrased differently may be missed.',
-    '- Contradictions are reported only where each source states one explicit value; differences explained by year, unit or group are labelled separately.',
+    '- Gaps and contradictions are found by an AI model first; any finding whose quote is not found word for word in the source is dropped. If the AI is unavailable, keyword rules are used instead, which can miss information phrased differently.',
+    '- Contradictions are reported only where each source states an explicit value; differences explained by year, unit or group are labelled separately.',
     '- Dates come only from what each source declares; undated sources are not assumed to be outdated. Freshness thresholds are warning rules, not proof of error.',
     '- Checklist items marked done were ticked by the user and are not independently verified by this tool.', '');
   return L.join('\n');

@@ -25,7 +25,7 @@ export default function TermsPage() {
 
       <h2>Findings are not verified facts</h2>
       <p>
-        Findings are produced automatically by keyword rules and, where enabled, by an AI model. They can be wrong or incomplete.
+        Findings are produced automatically by an AI model, or by keyword rules when the AI is unavailable. They can be wrong or incomplete.
         “Not found in the sources reviewed” only describes the sources you added. Always confirm important details, such as
         deadlines, eligibility and fees, with the official issuing organisation before acting on them.
       </p>

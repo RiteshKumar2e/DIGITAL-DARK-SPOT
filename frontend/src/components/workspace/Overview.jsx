@@ -7,35 +7,36 @@ import { formatDateTime } from '../../utils/format.js';
 const STATUS_TONE = { conflict: 'high', difference: 'medium', missing: 'high', unspecified: 'medium', single: 'low', covered: 'ok' };
 const FINDING_TAB = (id) => (id?.startsWith('con_') ? 'contradiction' : 'gap');
 
-function AiSummary({ ai }) {
-  if (!ai || ai.status === 'not_configured') {
-    return (
-      <Alert tone="info" title="AI review is not enabled on this server">
-        All findings below come from transparent, rule-based text analysis. Nothing on this page was written by an AI model.
+/** Says which engine produced the findings: the AI, or the rule engine as a fallback. */
+function AiSummary({ ai, method }) {
+  if (method !== 'ai') {
+    return !ai || ai.status === 'not_configured' ? (
+      <Alert tone="info" title="Findings by the rule engine">
+        AI analysis is not configured on this server, so the gaps and conflicts below come from keyword rules. Nothing on this page
+        was written by an AI model.
       </Alert>
-    );
-  }
-  if (ai.status === 'error') {
-    return (
-      <Alert tone="warning" title="AI review was unavailable for this run">
-        {ai.message} The rule-based findings are complete without it.
+    ) : (
+      <Alert tone="warning" title="AI analysis failed, so the rule engine took over">
+        {ai.message} The gaps and conflicts below come from keyword rules, which can miss information phrased differently. Run the
+        analysis again to retry the AI.
       </Alert>
     );
   }
   return (
     <section className="ai-block" aria-labelledby="ai-summary-heading">
       <div className="row">
-        <h3 id="ai-summary-heading">AI summary</h3>
-        <Tag tone="ai">AI-generated, not verified</Tag>
+        <h3 id="ai-summary-heading">AI analysis</h3>
+        <Tag tone="ai">AI-generated, quotes verified</Tag>
       </div>
+      <p className="small">
+        The gaps and conflicts in this session were found by an AI model reading the full text of each source. Every quote they
+        cite was matched word for word in the source; anything that could not be matched was dropped
+        {ai.discardedStatements > 0 ? ` (${ai.discardedStatements} statement${ai.discardedStatements === 1 ? '' : 's'} this run)` : ''}.
+        Dates, freshness and the coverage table are computed directly from the text.
+      </p>
       {ai.overview && <p>{ai.overview}</p>}
       {ai.keyPoints?.length > 0 && (
         <div className="stack-sm">
-          <p className="small muted">
-            Key points below include quotes that were checked word for word against the retrieved text.
-            {ai.discardedStatements > 0 &&
-              ` ${ai.discardedStatements} AI statement${ai.discardedStatements === 1 ? ' was' : 's were'} discarded because the quote could not be found in the source.`}
-          </p>
           {ai.keyPoints.map((point, index) => (
             <div key={`${index}-${point.sourceId}`} className="stack-sm">
               <p>
@@ -206,6 +207,7 @@ function Reproducibility({ analysis }) {
         <p className="small muted">
           Analysis engine {analysis.engine}, run {formatDateTime(analysis.runAt)}. A content fingerprint is recorded for each source,
           so a changed source can be told apart from a changed analysis.
+          {analysis.method === 'ai' && ' AI findings can differ slightly between runs on the same sources; the rule engine always gives the same result.'}
         </p>
         <div className="table-wrap" tabIndex={0} role="region" aria-label="Sources used by this analysis">
           <table className="table">
@@ -247,7 +249,7 @@ export default function Overview({ analysis, onGoToFinding }) {
   return (
     <div className="stack overview">
       <AtAGlance analysis={analysis} onGoToFinding={onGoToFinding} />
-      <AiSummary ai={analysis.ai} />
+      <AiSummary ai={analysis.ai} method={analysis.method} />
 
       <section className="stack-sm" aria-labelledby="coverage-heading">
         <h3 id="coverage-heading">Research coverage matrix</h3>

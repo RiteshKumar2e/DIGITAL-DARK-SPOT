@@ -86,8 +86,8 @@ function AnalysisStatus({ session, analyzing, onAnalyze, error }) {
       <div className="analysis-messages" aria-live="polite">
         {analyzing && (
           <Alert tone="info" role="none" title={`Reviewing ${plural(retrieved, 'source')}…`}>
-            Extracting statements, comparing sources and checking dates. This usually takes a few seconds
-            {session.analysis?.ai?.status === 'ok' ? ', longer with AI review' : ''}.
+            Reading the sources, comparing them and checking dates. The AI analysis can take up to a minute; if it fails, the
+            rule engine finishes the job.
           </Alert>
         )}
         {error && <Alert tone="error" title="The analysis could not be completed">{error}</Alert>}
