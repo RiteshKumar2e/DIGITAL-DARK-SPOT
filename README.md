@@ -263,7 +263,7 @@ Public values only; everything here is bundled into the browser.
 
 The app is two independent services: a static frontend and a Node.js API.
 
-**Live:** frontend https://digital-dark-spot-tau.vercel.app (Vercel), API https://digital-dark-spot.onrender.com (Render, free plan). On 1 November 2026 the deployed pair was checked end to end: `/api/health` reported AI and search configured, CORS allowed the Vercel origin, and two uploaded PDFs were analysed, producing a gap, conflicts and a freshness warning. On Render's free plan there is no persistent disk, so sessions are lost when the service restarts or redeploys, and the first request after idle time is slow.
+**Live:** frontend https://digital-dark-spot-tau.vercel.app (Vercel), API https://digital-dark-spot.onrender.com (Render, free plan). On 1 November 2026 the deployed pair was checked end to end: `/api/health` reported AI and search configured, CORS allowed the Vercel origin, and two uploaded PDFs were analysed, producing a gap, conflicts and a freshness warning.
 
 ### Backend (any Node.js host, for example Render, Railway or a VPS)
 
