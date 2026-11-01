@@ -9,6 +9,14 @@ import ScopeFields from './ScopeFields.jsx';
 const MIN = 10;
 const MAX = 500;
 
+// One-click starting points; each also sets the matching research type.
+const EXAMPLES = [
+  { label: 'Scholarship', profile: 'scholarship', question: 'Am I eligible for the National Scholarship Portal post-matric scholarship for 2026-27, and what is the last date to apply?' },
+  { label: 'Govt job', profile: 'job', question: 'What are the eligibility rules, age limit, application fee and last date for the SSC CGL 2026 exam?' },
+  { label: 'Passport', profile: 'publicService', question: 'Which documents do I need for a fresh Indian passport, what is the fee, and how long does processing take?' },
+  { label: 'Research', profile: 'research', question: 'What does recent research say about the effect of screen time on children’s sleep, and what are its limitations?' },
+];
+
 export default function NewResearchForm({ initialQuestion = '' }) {
   const navigate = useNavigate();
   const ids = { q: useId(), qHelp: useId(), qErr: useId(), profile: useId(), hp: useId() };
@@ -95,6 +103,27 @@ export default function NewResearchForm({ initialQuestion = '' }) {
             {remaining < 50 ? `${remaining} characters left` : ''}
           </span>
         </div>
+        <div className="example-chips" role="group" aria-label="Example questions">
+          <span className="small muted">Try an example:</span>
+          {EXAMPLES.map((example) => (
+            <button
+              key={example.label}
+              type="button"
+              className={`chip${question === example.question ? ' is-active' : ''}`}
+              aria-pressed={question === example.question}
+              title={example.question}
+              onClick={() => {
+                setQuestion(example.question);
+                setProfile(example.profile);
+                setFieldError('');
+                document.getElementById(ids.q)?.focus();
+              }}
+            >
+              {example.label}
+            </button>
+          ))}
+        </div>
+        <p className="small muted">After you start, add sources with the Search tab, a web page link, a PDF or pasted text.</p>
       </div>
 
       <div className="field">

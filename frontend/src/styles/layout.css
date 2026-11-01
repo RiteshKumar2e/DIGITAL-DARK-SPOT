@@ -360,6 +360,37 @@
   margin-top: var(--s-5);
 }
 
+/* Example questions under the research question field */
+.example-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.chip {
+  min-height: 2.25rem;
+  padding: 0.25rem 0.85rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: transform 90ms ease, box-shadow 90ms ease, background-color 120ms ease;
+}
+
+.chip:hover {
+  background: var(--yellow-wash);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.chip.is-active {
+  background: var(--yellow);
+}
+
 .new-research .alert {
   margin-top: var(--s-4);
 }
